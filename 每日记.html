@@ -1,0 +1,2503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>计时器 · 录音 · 事项</title>
+<style>
+  /* =========================================================
+     清新绿色 · 设计变量
+     ========================================================= */
+  :root{
+    --bg:        #f4f9f6;
+    --card:      #ffffff;
+    --ink:       #2d3a34;
+    --ink-2:     #4a5d54;
+    --muted:     #8fa89c;
+    --line:      #e3ede8;
+    --line-2:    #d0e0d8;
+
+    --primary:   #4f9c7d;
+    --primary-d: #3f8266;
+    --primary-l: #e6f2ec;
+
+    --mint:      #6dbf99;
+    --mint-d:    #3d8f6d;
+    --mint-l:    #e3f5eb;
+
+    --sand:      #c8c297;
+    --sand-l:    #f4f2e4;
+
+    --rose:      #d49a9a;
+    --rose-l:    #f7eaea;
+
+    --lilac:     #8fb3a1;
+    --lilac-l:   #e6f0eb;
+
+    --shadow-sm: 0 1px 2px rgba(45,58,52,0.04);
+    --shadow:    0 1px 3px rgba(45,58,52,0.05), 0 4px 12px rgba(45,58,52,0.04);
+  }
+
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body{ height: 100%; }
+
+  body{
+    margin: 0;
+    padding: 10px 12px 80px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                 "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--bg);
+    background-image: linear-gradient(180deg, #f7fbf9 0%, #eef6f1 100%);
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .wrap{
+    max-width: 620px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* =========================================================
+     顶部：日期 + 时钟
+     ========================================================= */
+  .hero{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 2px 2px 11px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 11px;
+  }
+
+  /* 日期：突出显示 */
+  .date{
+    display: inline-block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary-d);
+    letter-spacing: .2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: var(--primary-l);
+    padding: 4px 11px;
+    border-radius: 8px;
+  }
+
+  /* 时钟：弱化处理 */
+  .clock{
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: .5px;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  /* =========================================================
+     Tab 切换
+     ========================================================= */
+  .tabs{
+    display: flex;
+    gap: 4px;
+    padding: 3px;
+    background: #e8f0ec;
+    border-radius: 11px;
+    margin-bottom: 12px;
+  }
+
+  .tabs button{
+    flex: 1;
+    padding: 7px 0;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-2);
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .18s, color .18s, box-shadow .18s;
+  }
+  .tabs button.active{
+    background: #fff;
+    color: var(--ink);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(45,58,52,0.08);
+  }
+
+  .panel.hidden{ display: none !important; }
+
+  /* =========================================================
+     通用按钮 & 工具条
+     ========================================================= */
+  .btn{
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 15px;
+    color: var(--ink);
+    background: #fff;
+    border: 1px solid var(--line-2);
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background .16s, border-color .16s, transform .08s;
+  }
+  .btn:hover{ background: #f4f9f6; border-color: #b8cec2; }
+  .btn:active{ transform: scale(.98); }
+  .btn.primary{
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(79,156,125,0.28);
+  }
+  .btn.primary:hover{ background: var(--primary-d); border-color: var(--primary-d); }
+  .btn.sm{ font-size: 12px; padding: 5px 12px; }
+
+  .bar{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 9px;
+  }
+  .count{ font-size: 12px; color: var(--muted); }
+  /* ---------- 事项 Day 行 ---------- */
+    .todo-dayline{
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 4px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--primary-d);
+    letter-spacing: .3px;
+    flex: 1;
+    min-width: 0;
+  }
+  .todo-day-label{
+    color: var(--primary-d);
+  }
+    .todo-dayline .todo-day-input{
+    flex: 0 0 auto;
+    width: 42px;
+    padding: 2px 4px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--primary-d);
+    text-align: center;
+    background: var(--primary-l);
+    border: 1.5px solid var(--primary);
+    border-radius: 6px;
+    outline: none;
+    transition: box-shadow .15s, background .15s;
+  }
+    .todo-dayline .todo-day-input::placeholder{
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .todo-dayline .todo-day-input:focus{
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(79,156,125,0.18);
+  }
+    .todo-day-done{
+    color: var(--primary-d);
+    white-space: nowrap;
+  }
+  /* ---------- Day 行可点击提示 ---------- */
+  .todo-dayline{ cursor: pointer; }
+  .todo-dayline .todo-day-input{ cursor: text; }
+
+  /* ---------- 背景水印层 ---------- */
+        .watermark-layer{
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: 20vh 5vw 0 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .4s ease;
+    overflow: hidden;
+  }
+  .watermark-layer.show{ opacity: 1; }
+
+            .watermark-box{
+    position: relative;
+    transform: rotate(-7deg);
+    transform-origin: top right;
+    font-family: 'Avenir Next', 'Helvetica Neue', 'PingFang SC',
+                 'Hiragino Sans GB', system-ui, sans-serif;
+    padding: 4px 8px;
+    user-select: none;
+    text-align: left;
+    width: max-content;
+    max-width: 86vw;
+  }
+
+  /* Day 大标题：宋体轻盈感 + 细描边 */
+          .watermark-day{
+    font-size: clamp(76px, 19vw, 152px);
+    font-weight: 800;
+    letter-spacing: -2px;
+    line-height: 0.95;
+    color: rgba(79, 156, 125, 0.16);
+    -webkit-text-stroke: 1.5px rgba(63, 130, 102, 0.42);
+    paint-order: stroke fill;
+    white-space: nowrap;
+  }
+
+  /* 完成比例：错位摆放，字距拉大，与 Day 形成不对称感 */
+          .watermark-done{
+    font-size: clamp(26px, 6.5vw, 48px);
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.1;
+    margin-top: 6px;
+    margin-left: 10px;
+    color: rgba(79, 156, 125, 0.14);
+    -webkit-text-stroke: 1px rgba(63, 130, 102, 0.36);
+    paint-order: stroke fill;
+    white-space: nowrap;
+  }
+
+  /* =========================================================
+     计时器网格
+     ========================================================= */
+  .timers{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    gap: 10px;
+  }
+
+  .empty{
+    padding: 32px 16px;
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.9;
+    color: var(--muted);
+    background: #fff;
+    border: 1px dashed var(--line-2);
+    border-radius: 14px;
+  }
+
+  /* ---------- 计时器卡片 ---------- */
+  .card{
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 11px 12px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    transition: box-shadow .2s, border-color .2s, background .2s;
+  }
+
+  .card.running{
+    border-color: rgba(79,156,125,0.45);
+    box-shadow: 0 2px 12px rgba(79,156,125,0.14);
+  }
+
+  .card.finished{
+    animation: flash 1.2s ease-in-out infinite;
+  }
+  @keyframes flash{
+    0%, 100%{ background: #fff; border-color: var(--line); }
+    50%     { background: #fdf4f2; border-color: rgba(212,154,154,0.55); }
+  }
+
+  .card-head{ display: flex; align-items: center; gap: 4px; }
+
+  .name-wrap{ display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0; }
+
+  .name{
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 5px;
+    cursor: text;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background .15s;
+  }
+  .name:hover{ background: #eef5f1; }
+
+  .name-input{
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink);
+    width: 100%;
+    min-width: 0;
+    padding: 1px 5px;
+    border: 1px solid var(--primary);
+    border-radius: 5px;
+    background: var(--primary-l);
+    outline: none;
+  }
+
+  .tag{
+    flex-shrink: 0;
+    font-size: 9.5px;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--mint-l);
+    color: var(--mint-d);
+    white-space: nowrap;
+  }
+  .tag.down{ background: var(--lilac-l); color: #4d7a63; }
+
+  .icon-btn{
+    flex-shrink: 0;
+    width: 20px; height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    font-size: 11px;
+    line-height: 1;
+    color: var(--muted);
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .icon-btn:hover{ background: var(--rose-l); color: #b06060; }
+
+  .time{
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-align: center;
+    color: var(--ink);
+    padding: 7px 2px;
+    background: #f4f9f6;
+    border-radius: 9px;
+    font-variant-numeric: tabular-nums;
+    user-select: none;
+  }
+
+  .card-foot{ display: flex; gap: 5px; margin-top: 2px; }
+  .card-foot .btn{
+    flex: 1;
+    padding: 6px 0;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+
+  /* =========================================================
+     录音区
+     ========================================================= */
+  .rec-box{
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 15px 17px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    margin-bottom: 12px;
+  }
+
+  .rec-btn{
+    position: relative;
+    flex-shrink: 0;
+    width: 58px; height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary);
+    border: none;
+    border-radius: 50%;
+    box-shadow: 0 3px 12px rgba(79,156,125,0.32);
+    cursor: pointer;
+    transition: transform .1s, box-shadow .18s, background .18s;
+    touch-action: manipulation;
+  }
+  .rec-btn:hover{ box-shadow: 0 4px 16px rgba(79,156,125,0.42); }
+  .rec-btn:active{ transform: scale(.96); }
+  .rec-btn:disabled{ opacity: .55; cursor: not-allowed; }
+
+  .rec-icon{
+    width: 20px; height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    transition: border-radius .18s, width .18s, height .18s;
+  }
+
+  .rec-btn.recording{
+    background: #d98c8c;
+    box-shadow: 0 3px 12px rgba(217,140,140,0.4);
+    animation: recPulse 1.3s ease-in-out infinite;
+  }
+  .rec-btn.recording .rec-icon{
+    border-radius: 4px;
+    width: 16px; height: 16px;
+  }
+  @keyframes recPulse{
+    0%, 100%{ box-shadow: 0 3px 12px rgba(217,140,140,0.4); }
+    50%     { box-shadow: 0 3px 12px rgba(217,140,140,0.4), 0 0 0 8px rgba(217,140,140,0.14); }
+  }
+
+  .rec-info{ flex: 1; min-width: 0; }
+  .rec-status{
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .rec-time{
+    font-size: 25px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 1.5px;
+    color: var(--ink);
+  }
+
+  /* ---------- 日期卡片 ---------- */
+  .days{ display: flex; flex-direction: column; gap: 8px; }
+
+  .day{
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: box-shadow .18s;
+  }
+  .day.open{ box-shadow: var(--shadow); }
+
+  .day-head{ display: flex; align-items: center; gap: 6px; padding: 10px 13px; }
+
+  .day-date{
+    flex: 1; min-width: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .day-meta{
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .day-actions{ display: flex; gap: 5px; }
+
+  .day-actions .icon-btn{
+    width: 26px; height: 26px;
+    font-size: 12px;
+    background: #eef5f1;
+    border-radius: 8px;
+    color: var(--ink-2);
+    transition: background .15s, color .15s;
+  }
+  .day-actions .icon-btn:hover{ background: var(--primary-l); color: var(--primary-d); }
+  .day-actions .icon-btn.toggle{ background: var(--sand-l); color: #8a8154; }
+  .day-actions .icon-btn.toggle:hover{ background: #ece9d5; }
+  .day-actions .icon-btn.delete-day{ background: var(--rose-l); color: #b06060; }
+  .day-actions .icon-btn.delete-day:hover{ background: #f2dcdc; color: #a05050; }
+
+  .day-segs{
+    display: none;
+    padding: 2px 10px 9px;
+    border-top: 1px solid var(--line);
+  }
+  .day.open .day-segs{ display: block; }
+
+  /* ---------- 录音段 ---------- */
+  .seg{
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 0;
+    border-bottom: 1px solid #f0f6f2;
+  }
+  .seg:last-child{ border-bottom: none; }
+
+  .seg-idx{
+    width: 16px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .seg-title{
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+    padding: 3px 6px;
+    border-radius: 6px;
+    cursor: text;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background .15s;
+  }
+  .seg-title:hover{ background: #eef5f1; }
+  .seg-title:empty::before{
+    content: '未命名';
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .seg-title-input{
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+    width: 100%;
+    min-width: 0;
+    padding: 2px 6px;
+    border: 1px solid var(--primary);
+    border-radius: 6px;
+    background: var(--primary-l);
+    outline: none;
+  }
+
+  .seg-dur{
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    padding-right: 2px;
+  }
+
+  .sbtn{
+    flex-shrink: 0;
+    width: 25px; height: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-2);
+    background: #eef5f1;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background .15s, color .15s, transform .08s;
+  }
+  .sbtn:active{ transform: scale(.94); }
+  .sbtn.play-seg{ background: var(--primary-l); color: var(--primary-d); }
+  .sbtn.play-seg:hover{ background: #d4e8de; }
+  .sbtn.ins-seg{ background: var(--sand-l); color: #8a8154; }
+  .sbtn.ins-seg:hover{ background: #ece9d5; }
+  .sbtn.del-seg{ background: var(--rose-l); color: #b06060; }
+  .sbtn.del-seg:hover{ background: #f2dcdc; }
+
+  /* =========================================================
+     事项（打卡）面板
+     ========================================================= */
+  .todo-add{
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+          .todo-add input{
+    flex: 1;
+    min-width: 0;
+    padding: 9px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--line-2);
+    border-radius: 10px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  .todo-add input::placeholder{ color: var(--muted); }
+    .todo-add input:focus{
+    border-color: var(--primary);
+    background: rgba(255, 255, 255, 0.75);
+    box-shadow: 0 0 0 3px rgba(79,156,125,0.14);
+  }
+  .todo-add .btn{
+    flex-shrink: 0;
+    border-radius: 10px;
+    padding: 9px 16px;
+  }
+
+  .todos{
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+        .todo-item{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    box-shadow: 0 1px 2px rgba(45,58,52,0.03);
+    transition: background .2s, border-color .2s, box-shadow .2s;
+  }
+  .todo-item:hover{ border-color: var(--line-2); }
+
+  /* ---------- 完成态：颜色点满突显 ---------- */
+      .todo-item.done{
+    background: rgba(227, 245, 235, 0.42);
+    backdrop-filter: blur(1.2px) saturate(120%);
+    -webkit-backdrop-filter: blur(1.2px) saturate(120%);
+    border-color: rgba(109,191,153,0.7);
+    box-shadow: 0 1px 3px rgba(109,191,153,0.18);
+  }
+
+  .todo-check{
+    flex-shrink: 0;
+    width: 22px; height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid var(--line-2);
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+    font-size: 12px;
+    font-weight: 700;
+    color: transparent;
+    user-select: none;
+  }
+  .todo-check:hover{ border-color: var(--mint); }
+
+  .todo-item.done .todo-check{
+    background: var(--mint);
+    border-color: var(--mint);
+    color: #fff;
+  }
+
+  .todo-text{
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    word-break: break-word;
+    line-height: 1.45;
+    padding: 1px 4px;
+    border-radius: 6px;
+    cursor: text;
+    transition: background .15s, color .15s;
+  }
+  .todo-text:hover{ background: rgba(79,156,125,0.10); }
+
+  /* 完成态文字：加深加粗，颜色点满 */
+  .todo-item.done .todo-text{
+    color: var(--mint-d);
+    font-weight: 700;
+  }
+
+  .todo-text-input{
+    flex: 1;
+    min-width: 0;
+    padding: 1px 6px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    background: #fff;
+    border: 1px solid var(--primary);
+    border-radius: 7px;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(79,156,125,0.14);
+  }
+
+  .todo-del{
+    flex-shrink: 0;
+    width: 22px; height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    font-size: 11px;
+    line-height: 1;
+    color: var(--muted);
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .todo-del:hover{ background: var(--rose-l); color: #b06060; }
+  /* ---------- 事项移动按钮 ---------- */
+  .todo-move{
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex-shrink: 0;
+  }
+  .todo-mv{
+    width: 20px;
+    height: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    line-height: 1;
+    padding: 0;
+    color: var(--muted);
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .todo-mv:hover:not(:disabled){
+    background: var(--primary-l);
+    color: var(--primary-d);
+  }
+  .todo-mv:disabled{
+    opacity: .18;
+    cursor: not-allowed;
+  }
+
+  /* =========================================================
+     底部播放条
+     ========================================================= */
+  .player{
+    position: fixed;
+    left: 10px; right: 10px; bottom: 10px;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(45,58,52,0.13);
+    animation: slideUp .22s ease;
+  }
+  .player.hidden{ display: none; }
+  @keyframes slideUp{ from{ transform: translateY(20px); opacity: 0; } }
+
+  .player-info{ flex: 1; min-width: 0; }
+  .player-title{
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 1px;
+  }
+  .player-sub{ font-size: 11px; color: var(--muted); }
+
+  .player-ctrl{ display: flex; align-items: center; gap: 4px; }
+
+  .pbtn{
+    width: 30px; height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink-2);
+    background: #eef5f1;
+    border: none;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background .15s, color .15s, transform .08s;
+  }
+  .pbtn:active{ transform: scale(.94); }
+  .pbtn:hover{ background: #dfece5; }
+  .pbtn.play{
+    width: 34px; height: 34px;
+    font-size: 14px;
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(79,156,125,0.32);
+  }
+  .pbtn.play:hover{ background: var(--primary-d); }
+  .pbtn.loop{ background: var(--lilac-l); color: #4d7a63; font-size: 12px; }
+  .pbtn.loop:hover{ background: #d6e6dd; }
+  .pbtn.close{ background: #eef5f1; font-size: 11px; }
+
+  /* =========================================================
+     新建计时器弹窗
+     ========================================================= */
+  .mask{
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(45,58,52,0.35);
+    backdrop-filter: blur(4px);
+  }
+  .mask.show{ display: flex; }
+
+  .modal{
+    width: 100%;
+    max-width: 350px;
+    padding: 22px 20px 20px;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 20px 50px rgba(45,58,52,0.2);
+    animation: pop .2s ease;
+  }
+  @keyframes pop{ from{ transform: scale(.95); opacity: 0; } }
+
+  .modal h2{
+    margin: 0 0 18px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .field{ margin-bottom: 14px; }
+  .field > label{
+    display: block;
+    margin-bottom: 7px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  input[type="text"], input[type="number"]{
+    width: 100%;
+    padding: 9px 12px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+    background: #f8fbf9;
+    border: 1px solid var(--line-2);
+    border-radius: 10px;
+    outline: none;
+    transition: border-color .15s, background .15s, box-shadow .15s;
+  }
+  input[type="text"]:focus, input[type="number"]:focus{
+    border-color: var(--primary);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(79,156,125,0.14);
+  }
+  input[type="number"]{ text-align: center; }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance: none; margin: 0; }
+  input[type="number"]{ -moz-appearance: textfield; appearance: textfield; }
+
+  .seg-toggle{
+    display: flex;
+    gap: 4px;
+    padding: 3px;
+    background: #e8f0ec;
+    border-radius: 10px;
+  }
+  .seg-toggle button{
+    flex: 1;
+    padding: 7px 0;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-2);
+    background: transparent;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: .15s;
+  }
+  .seg-toggle button.active{
+    background: #fff;
+    color: var(--ink);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(45,58,52,0.08);
+  }
+
+  .dur{ display: flex; align-items: center; gap: 6px; }
+  .dur input{ flex: 1; min-width: 0; }
+  .dur span{ flex-shrink: 0; font-size: 12px; color: var(--muted); }
+
+  .modal-foot{ display: flex; gap: 9px; margin-top: 20px; }
+  .modal-foot .btn{ flex: 1; padding: 10px 0; }
+
+  .hidden{ display: none !important; }
+
+  /* =========================================================
+     自定义确认框
+     ========================================================= */
+  .confirm-mask{
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(45,58,52,0);
+    transition: background .2s;
+  }
+  .confirm-mask.show{ background: rgba(45,58,52,0.38); }
+
+  .confirm-box{
+    width: 100%;
+    max-width: 300px;
+    padding: 22px 18px 16px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(45,58,52,0.22);
+    transform: scale(.94);
+    opacity: 0;
+    transition: transform .2s, opacity .2s;
+  }
+  .confirm-mask.show .confirm-box{ transform: scale(1); opacity: 1; }
+
+  .confirm-box p{
+    margin: 0 0 18px;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--ink);
+    text-align: center;
+    word-break: break-word;
+  }
+
+  .confirm-btns{ display: flex; gap: 9px; }
+  .confirm-btns .btn{ flex: 1; padding: 9px 0; border-radius: 10px; }
+
+  /* =========================================================
+     轻提示
+     ========================================================= */
+  .toast{
+    position: fixed;
+    left: 50%;
+    bottom: 96px;
+    transform: translateX(-50%) translateY(16px);
+    max-width: 82%;
+    padding: 10px 18px;
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: center;
+    color: #fff;
+    background: rgba(45,58,52,0.94);
+    border-radius: 11px;
+    box-shadow: 0 6px 20px rgba(45,58,52,0.25);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s, transform .25s;
+    z-index: 999;
+  }
+  .toast.show{
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* =========================================================
+     小屏适配
+     ========================================================= */
+  @media (max-width: 380px){
+    .clock{ font-size: 14px; }
+    .time{ font-size: 19px; }
+    .rec-btn{ width: 52px; height: 52px; }
+    .rec-time{ font-size: 22px; }
+    .tabs button{ font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<!-- 背景水印层（点击事项 Day 行切换） -->
+<div class="watermark-layer" id="watermarkLayer" aria-hidden="true">
+  <div class="watermark-box">
+    <div class="watermark-day" id="watermarkDay">Day —</div>
+    <div class="watermark-done" id="watermarkDone">完成 0 / 0</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- 顶部：日期 + 时钟 -->
+  <header class="hero">
+    <div class="date" id="date">——</div>
+    <div class="clock" id="clock">00:00:00</div>
+  </header>
+
+  <!-- Tab 切换 -->
+  <nav class="tabs">
+    <button data-tab="timer" class="active">计时器</button>
+    <button data-tab="rec">录音</button>
+    <button data-tab="todo">事项</button>
+  </nav>
+
+  <!-- ================= 计时器面板 ================= -->
+  <section class="panel" id="panel-timer">
+    <div class="bar">
+      <div class="count" id="count"></div>
+      <button class="btn primary sm" id="addBtn">＋ 新建</button>
+    </div>
+    <div class="timers" id="timers"></div>
+    <div class="empty" id="empty">
+      还没有计时器<br>点「＋ 新建」开始吧
+    </div>
+  </section>
+
+  <!-- ================= 录音面板 ================= -->
+  <section class="panel hidden" id="panel-rec">
+
+    <div class="rec-box">
+      <button class="rec-btn" id="recBtn" aria-label="录音">
+        <span class="rec-icon"></span>
+      </button>
+      <div class="rec-info">
+        <div class="rec-status" id="recStatus">点击开始录音</div>
+        <div class="rec-time" id="recTime">00:00</div>
+      </div>
+    </div>
+
+    <div class="bar">
+      <div class="count" id="recCount"></div>
+      <button class="btn sm" id="playAllBtn">▶ 播放全部</button>
+    </div>
+
+    <div class="days" id="days"></div>
+    <div class="empty" id="recEmpty">
+      还没有录音<br>点击上方按钮开始
+    </div>
+  </section>
+
+  <!-- ================= 事项面板 ================= -->
+  <section class="panel hidden" id="panel-todo">
+
+    <div class="todo-add">
+      <input type="text" id="todoInput" maxlength="40" placeholder="添加今日事项…">
+      <button class="btn primary" id="todoAddBtn">添加</button>
+    </div>
+
+    <div class="bar">
+      <div class="todo-dayline">
+        <span class="todo-day-label">Day</span>
+        <input type="text" class="todo-day-input" id="todoDayInput" maxlength="6" placeholder="—" inputmode="numeric">
+        <span class="todo-day-done" id="todoCount"></span>
+      </div>
+      <button class="btn sm" id="todoClear">清空</button>
+    </div>
+
+    <div class="todos" id="todos"></div>
+    <div class="empty" id="todoEmpty">
+      今天还没有事项<br>在上方输入框添加吧
+    </div>
+  </section>
+
+</div>
+
+<!-- 底部播放条 -->
+<div class="player hidden" id="player">
+  <div class="player-info">
+    <div class="player-title" id="pTitle">—</div>
+    <div class="player-sub" id="pSub">—</div>
+  </div>
+  <div class="player-ctrl">
+    <button class="pbtn" id="pPrev" title="上一段">⏮</button>
+    <button class="pbtn play" id="pPlay" title="播放/暂停">▶</button>
+    <button class="pbtn" id="pNext" title="下一段">⏭</button>
+    <button class="pbtn loop" id="pLoop" title="循环模式">➡</button>
+    <button class="pbtn close" id="pClose" title="关闭">✕</button>
+  </div>
+</div>
+
+<!-- 新建计时器弹窗 -->
+<div class="mask" id="mask">
+  <div class="modal">
+    <h2>新建计时器</h2>
+
+    <div class="field">
+      <label>名称</label>
+      <input type="text" id="mName" maxlength="24" placeholder="例如：煮鸡蛋">
+    </div>
+
+    <div class="field">
+      <label>类型</label>
+      <div class="seg-toggle" id="segToggle">
+        <button type="button" data-mode="up" class="active">正计时</button>
+        <button type="button" data-mode="down">倒计时</button>
+      </div>
+    </div>
+
+    <div class="field hidden" id="downRow">
+      <label>倒计时时长</label>
+      <div class="dur">
+        <input type="number" id="mH" min="0" max="99" value="0"><span>时</span>
+        <input type="number" id="mM" min="0" max="59" value="5"><span>分</span>
+        <input type="number" id="mS" min="0" max="59" value="0"><span>秒</span>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn" id="mCancel">取消</button>
+      <button class="btn primary" id="mOk">创建</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* =========================================================
+     0. 通用工具
+     ========================================================= */
+  const $ = (sel) => document.querySelector(sel);
+  const pad = (n) => String(n).padStart(2, '0');
+
+  function uid() {
+    return 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  function fmtMs(ms) {
+    if (!isFinite(ms) || ms < 0) ms = 0;
+    const t = Math.floor(ms / 1000);
+    return pad(Math.floor(t / 3600)) + ':' + pad(Math.floor((t % 3600) / 60)) + ':' + pad(t % 60);
+  }
+
+  function fmtDur(ms) {
+    if (!isFinite(ms) || ms < 0) ms = 0;
+    const t = Math.floor(ms / 1000);
+    const h = Math.floor(t / 3600);
+    const m = Math.floor((t % 3600) / 60);
+    const s = t % 60;
+    return h > 0 ? (h + ':' + pad(m) + ':' + pad(s)) : (pad(m) + ':' + pad(s));
+  }
+
+  function todayStr() {
+    const d = new Date();
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+
+  function defaultTitle() {
+    const d = new Date();
+    return pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  /* ---------- 轻提示 ---------- */
+  let toastTimer = null;
+  function showToast(msg) {
+    let el = document.getElementById('toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'toast';
+      el.className = 'toast';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+  }
+
+  /* ---------- 自定义确认框（替代被沙箱禁用的 confirm） ---------- */
+  function confirmDialog(msg) {
+    return new Promise((resolve) => {
+      const mk = document.createElement('div');
+      mk.className = 'confirm-mask';
+
+      const box = document.createElement('div');
+      box.className = 'confirm-box';
+
+      const p = document.createElement('p');
+      p.textContent = msg;
+
+      const btns = document.createElement('div');
+      btns.className = 'confirm-btns';
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.className = 'btn';
+      cancelBtn.textContent = '取消';
+
+      const okBtn = document.createElement('button');
+      okBtn.type = 'button';
+      okBtn.className = 'btn primary';
+      okBtn.textContent = '确定';
+
+      btns.append(cancelBtn, okBtn);
+      box.append(p, btns);
+      mk.appendChild(box);
+      document.body.appendChild(mk);
+
+      requestAnimationFrame(() => mk.classList.add('show'));
+
+      let closed = false;
+      function close(result) {
+        if (closed) return;
+        closed = true;
+        mk.classList.remove('show');
+        setTimeout(() => mk.remove(), 220);
+        resolve(result);
+      }
+
+      cancelBtn.addEventListener('click', () => close(false));
+      okBtn.addEventListener('click', () => close(true));
+      mk.addEventListener('click', (e) => { if (e.target === mk) close(false); });
+
+      const onKey = (e) => {
+        if (e.key === 'Escape') { document.removeEventListener('keydown', onKey); close(false); }
+        if (e.key === 'Enter')  { document.removeEventListener('keydown', onKey); close(true);  }
+      };
+      document.addEventListener('keydown', onKey);
+
+      setTimeout(() => okBtn.focus(), 80);
+    });
+  }
+
+  /* =========================================================
+     1. 顶部日期（含年份）+ 时钟
+     ========================================================= */
+  const WEEK = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+  const dateEl = $('#date'), clockEl = $('#clock');
+
+  let lastDayStr = todayStr();
+
+  function updateClock() {
+    const d = new Date();
+    dateEl.textContent =
+      d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + WEEK[d.getDay()];
+    clockEl.textContent =
+      pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+
+        const cur = todayStr();
+    if (cur !== lastDayStr) {
+      lastDayStr = cur;
+    }
+  }
+  updateClock();
+  setInterval(updateClock, 200);
+
+  /* =========================================================
+     2. Tab 切换
+     ========================================================= */
+  document.querySelectorAll('.tabs button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.panel').forEach((p) => p.classList.add('hidden'));
+      $('#panel-' + btn.dataset.tab).classList.remove('hidden');
+    });
+  });
+
+  /* =========================================================
+     3. 计时器
+     ========================================================= */
+    const T_KEY = 'my-timers-v2';
+
+  function saveTimers() {
+    try {
+      localStorage.setItem(T_KEY, JSON.stringify({
+        savedAt: Date.now(),
+        list: timers.map((t) => ({
+          id: t.id,
+          name: t.name,
+          mode: t.mode,
+          duration: t.duration,
+          accumulated: t.accumulated + (t.running ? Date.now() - t.startedAt : 0),
+          running: !!t.running,
+          finished: false
+        }))
+      }));
+    } catch (e) {}
+  }
+
+  function loadTimers() {
+    let data = null;
+    try { data = JSON.parse(localStorage.getItem(T_KEY) || 'null'); } catch (e) {}
+
+    let list = [];
+    let savedAt = Date.now();
+    if (Array.isArray(data)) {
+      list = data;
+    } else if (data && Array.isArray(data.list)) {
+      list = data.list;
+      savedAt = Number(data.savedAt) || Date.now();
+    } else {
+      // 兼容旧 key
+      try {
+        const old = JSON.parse(localStorage.getItem('my-timers-v1') || '[]');
+        if (Array.isArray(old)) list = old;
+      } catch (e) {}
+    }
+
+    const gap = Math.max(0, Date.now() - savedAt);
+
+    list.forEach((d) => {
+      const wasRunning = !!d.running;
+      let acc = Number(d.accumulated) || 0;
+      // 关闭前正在跑的，把关闭期间流逝的时间补上
+      if (wasRunning) acc += gap;
+
+      timers.push({
+        id: d.id || uid(),
+        name: d.name || '计时器',
+        mode: d.mode === 'down' ? 'down' : 'up',
+        duration: Number(d.duration) || 0,
+        accumulated: acc,
+        running: wasRunning,
+        startedAt: wasRunning ? Date.now() : null,
+        finished: false
+      });
+    });
+  }
+
+  const timersEl = $('#timers'), emptyEl = $('#empty'), countEl = $('#count');
+
+  function updateMeta() {
+    emptyEl.style.display = timers.length ? 'none' : 'block';
+    countEl.textContent = timers.length ? '共 ' + timers.length + ' 个' : '';
+  }
+
+  function updateCardUI(t) {
+    const c = cards.get(t.id);
+    if (!c) return;
+    const done = t.mode === 'down' && t.accumulated >= t.duration;
+    c.startBtn.textContent = t.running ? '暂停' : (done ? '重来' : (t.accumulated > 0 ? '继续' : '开始'));
+    c.root.classList.toggle('finished', !!t.finished);
+    c.root.classList.toggle('running', !!t.running);
+  }
+
+  function createCard(t) {
+    const root = document.createElement('div');
+    root.className = 'card';
+
+    const head = document.createElement('div');
+    head.className = 'card-head';
+
+    const nameWrap = document.createElement('div');
+    nameWrap.className = 'name-wrap';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'name';
+    nameEl.textContent = t.name;
+    nameEl.title = '点击重命名';
+
+    const tag = document.createElement('span');
+    tag.className = 'tag' + (t.mode === 'down' ? ' down' : '');
+    tag.textContent = t.mode === 'down' ? '倒计时' : '正计时';
+
+    nameWrap.append(nameEl, tag);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'icon-btn';
+    delBtn.textContent = '✕';
+    delBtn.title = '删除';
+
+    head.append(nameWrap, delBtn);
+
+    const timeEl = document.createElement('div');
+    timeEl.className = 'time';
+    timeEl.textContent = fmtMs(t.mode === 'down' ? Math.max(0, t.duration - t.accumulated) : t.accumulated);
+
+    const foot = document.createElement('div');
+    foot.className = 'card-foot';
+    const startBtn = document.createElement('button');
+    startBtn.className = 'btn primary';
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'btn';
+    resetBtn.textContent = '重置';
+    foot.append(startBtn, resetBtn);
+
+    root.append(head, timeEl, foot);
+    timersEl.appendChild(root);
+    cards.set(t.id, { root, timeEl, startBtn });
+
+    nameEl.addEventListener('click', () => startRename(t, nameEl));
+    startBtn.addEventListener('click', () => toggleTimer(t));
+    resetBtn.addEventListener('click', () => resetTimer(t));
+    delBtn.addEventListener('click', () => removeTimer(t));
+
+    updateCardUI(t);
+  }
+
+  function startRename(t, nameEl) {
+    if (nameEl.querySelector('input')) return;
+    const input = document.createElement('input');
+    input.className = 'name-input';
+    input.type = 'text';
+    input.maxLength = 24;
+    input.value = t.name;
+    nameEl.textContent = '';
+    nameEl.appendChild(input);
+    input.focus(); input.select();
+    let done = false;
+    function finish(commit) {
+      if (done) return; done = true;
+      if (commit) { t.name = input.value.trim() || '未命名'; saveTimers(); }
+      nameEl.textContent = t.name;
+    }
+    input.addEventListener('blur', () => finish(true));
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') input.blur();
+      if (e.key === 'Escape') { input.value = t.name; input.blur(); }
+    });
+  }
+
+  function toggleTimer(t) {
+    if (t.running) {
+      t.accumulated += Date.now() - t.startedAt;
+      t.running = false; t.startedAt = null;
+    } else {
+      if (t.mode === 'down' && t.accumulated >= t.duration) t.accumulated = 0;
+      t.finished = false;
+      t.running = true;
+      t.startedAt = Date.now();
+    }
+    updateCardUI(t); saveTimers();
+  }
+
+  function resetTimer(t) {
+    t.accumulated = 0; t.running = false; t.startedAt = null; t.finished = false;
+    const c = cards.get(t.id);
+    if (c) c.timeEl.textContent = fmtMs(t.mode === 'down' ? t.duration : 0);
+    updateCardUI(t); saveTimers();
+  }
+
+  async function removeTimer(t) {
+    const ok = await confirmDialog('确定删除「' + t.name + '」吗？');
+    if (!ok) return;
+    const i = timers.indexOf(t);
+    if (i > -1) timers.splice(i, 1);
+    const c = cards.get(t.id);
+    if (c) { c.root.remove(); cards.delete(t.id); }
+    updateMeta(); saveTimers();
+    showToast('已删除「' + t.name + '」');
+  }
+
+  function finishTimer(t) {
+    t.accumulated = t.duration; t.running = false; t.startedAt = null; t.finished = true;
+    const c = cards.get(t.id);
+    if (c) c.timeEl.textContent = fmtMs(0);
+    updateCardUI(t);
+    beep();
+    saveTimers();
+  }
+
+  let lastTSave = 0;
+  setInterval(() => {
+    const now = Date.now();
+    const done = [];
+    for (const t of timers) {
+      const c = cards.get(t.id);
+      if (!c) continue;
+      const elapsed = t.accumulated + (t.running ? now - t.startedAt : 0);
+      let text;
+      if (t.mode === 'down') {
+        const remain = Math.max(0, t.duration - elapsed);
+        text = fmtMs(remain);
+        if (remain <= 0 && t.running) done.push(t);
+      } else {
+        text = fmtMs(elapsed);
+      }
+      if (c.timeEl.textContent !== text) c.timeEl.textContent = text;
+    }
+    done.forEach(finishTimer);
+    if (now - lastTSave > 1000 && timers.some((t) => t.running)) { lastTSave = now; saveTimers(); }
+  }, 100);
+
+  /* ---------- 弹窗 ---------- */
+  const mask = $('#mask'), segToggle = $('#segToggle'), downRow = $('#downRow');
+  const mName = $('#mName'), mH = $('#mH'), mM = $('#mM'), mS = $('#mS');
+  let newMode = 'up';
+
+  function setNewMode(m) {
+    newMode = m;
+    [...segToggle.children].forEach((b) => b.classList.toggle('active', b.dataset.mode === m));
+    downRow.classList.toggle('hidden', m !== 'down');
+  }
+
+  function openModal() {
+    mName.value = ''; mH.value = 0; mM.value = 5; mS.value = 0;
+    setNewMode('up');
+    mask.classList.add('show');
+    setTimeout(() => mName.focus(), 60);
+  }
+  function closeModal() { mask.classList.remove('show'); }
+
+  function createTimer() {
+    const name = mName.value.trim() || ('计时器 ' + (timers.length + 1));
+    let duration = 0;
+    if (newMode === 'down') {
+      const h = Math.max(0, parseInt(mH.value, 10) || 0);
+      const m = Math.max(0, parseInt(mM.value, 10) || 0);
+      const s = Math.max(0, parseInt(mS.value, 10) || 0);
+      duration = (h * 3600 + m * 60 + s) * 1000;
+      if (duration <= 0) { showToast('请填写大于 0 的时长'); return; }
+    }
+    const t = {
+      id: uid(), name, mode: newMode, duration,
+      accumulated: 0, running: false, startedAt: null, finished: false
+    };
+    timers.push(t);
+    createCard(t);
+    updateMeta(); saveTimers(); closeModal();
+  }
+
+  $('#addBtn').addEventListener('click', openModal);
+  $('#mCancel').addEventListener('click', closeModal);
+  $('#mOk').addEventListener('click', createTimer);
+  segToggle.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-mode]');
+    if (b) setNewMode(b.dataset.mode);
+  });
+  mask.addEventListener('click', (e) => { if (e.target === mask) closeModal(); });
+  mask.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') createTimer();
+    if (e.key === 'Escape') closeModal();
+  });
+
+  /* =========================================================
+     4. 提示音
+     ========================================================= */
+  let audioCtx = null;
+
+  function ensureAudioCtx() {
+    try {
+      if (!audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) audioCtx = new AC();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    } catch (e) {}
+  }
+
+  function beep() {
+    try {
+      ensureAudioCtx();
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      for (let i = 0; i < 3; i++) {
+        const t0 = now + i * 0.34;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        gain.gain.setValueAtTime(0, t0);
+        gain.gain.linearRampToValueAtTime(0.26, t0 + 0.02);
+        gain.gain.linearRampToValueAtTime(0, t0 + 0.24);
+        osc.start(t0); osc.stop(t0 + 0.28);
+      }
+    } catch (e) {}
+  }
+
+  /* =========================================================
+     5. 录音数据层 · IndexedDB
+     ========================================================= */
+  const DB_NAME = 'doodle-rec';
+  const STORE = 'days';
+  let dbPromise = null;
+
+  function getDB() {
+    if (!dbPromise) {
+      dbPromise = new Promise((resolve, reject) => {
+        if (!window.indexedDB) { reject(new Error('浏览器不支持 IndexedDB')); return; }
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE)) {
+            db.createObjectStore(STORE, { keyPath: 'date' });
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+    return dbPromise;
+  }
+
+  async function dbGetAll() {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readonly');
+      const req = tx.objectStore(STORE).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function dbPut(day) {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).put(day);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async function dbDelete(date) {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).delete(date);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  let days = [];
+  const openDays = new Set();
+
+  async function loadDays() {
+    try {
+      days = await dbGetAll();
+    } catch (e) {
+      days = [];
+      console.warn('读取录音失败', e);
+    }
+    days.sort((a, b) => b.date.localeCompare(a.date));
+    renderDays();
+  }
+
+  /* =========================================================
+     6. 录音 UI 渲染
+     ========================================================= */
+  const daysEl = $('#days'), recEmpty = $('#recEmpty'), recCount = $('#recCount');
+
+  function renderDays() {
+    daysEl.innerHTML = '';
+
+    if (!days.length || days.every((d) => !d.segments.length)) {
+      recEmpty.style.display = 'block';
+      recCount.textContent = '';
+      return;
+    }
+    recEmpty.style.display = 'none';
+
+    const totalSeg = days.reduce((s, d) => s + d.segments.length, 0);
+    const totalDur = days.reduce((s, d) => s + d.segments.reduce((x, g) => x + g.duration, 0), 0);
+    recCount.textContent = days.length + ' 天 · ' + totalSeg + ' 段 · ' + fmtDur(totalDur);
+
+    days.forEach((day) => daysEl.appendChild(makeDayCard(day)));
+  }
+
+  function segTitle(seg, i) {
+    return seg.title || ('第 ' + (i + 1) + ' 段');
+  }
+
+    function makeDayCard(day) {
+    const card = document.createElement('div');
+    card.className = 'day';
+    if (openDays.has(day.date)) card.classList.add('open');
+
+    const totalDur = day.segments.reduce((s, g) => s + g.duration, 0);
+    const isToday = day.date === todayStr();
+
+    /* 头部 */
+    const head = document.createElement('div');
+    head.className = 'day-head';
+
+    const dateBox = document.createElement('div');
+    dateBox.className = 'day-date';
+    const dateText = document.createElement('span');
+    dateText.textContent = isToday ? ('今天 · ' + day.date) : day.date;
+    const meta = document.createElement('span');
+    meta.className = 'day-meta';
+    meta.textContent = day.segments.length + ' 段 · ' + fmtDur(totalDur);
+    dateBox.append(dateText, meta);
+
+    const actions = document.createElement('div');
+    actions.className = 'day-actions';
+
+    const playDay = document.createElement('button');
+    playDay.type = 'button';
+    playDay.className = 'icon-btn';
+    playDay.textContent = '▶';
+    playDay.title = '播放这个单曲';
+
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'icon-btn toggle';
+    toggle.textContent = card.classList.contains('open') ? '▴' : '▾';
+    toggle.title = '展开/收起';
+
+    const delDay = document.createElement('button');
+    delDay.type = 'button';
+    delDay.className = 'icon-btn delete-day';
+    delDay.textContent = '🗑';
+    delDay.title = '删除这一天';
+
+    actions.append(playDay, toggle, delDay);
+    head.append(dateBox, actions);
+    card.appendChild(head);
+
+    /* 分段列表 */
+    const segBox = document.createElement('div');
+    segBox.className = 'day-segs';
+
+    day.segments.forEach((seg, i) => {
+      const row = document.createElement('div');
+      row.className = 'seg';
+
+      const idxEl = document.createElement('span');
+      idxEl.className = 'seg-idx';
+      idxEl.textContent = (i + 1);
+
+      const titleEl = document.createElement('span');
+      titleEl.className = 'seg-title';
+      titleEl.textContent = segTitle(seg, i);
+      titleEl.title = '点击重命名';
+
+      const dur = document.createElement('span');
+      dur.className = 'seg-dur';
+      dur.textContent = fmtDur(seg.duration);
+
+      const btnPlay = document.createElement('button');
+      btnPlay.type = 'button';
+      btnPlay.className = 'sbtn play-seg';
+      btnPlay.textContent = '▶';
+      btnPlay.title = '播放这一段';
+
+      const btnRedo = document.createElement('button');
+      btnRedo.type = 'button';
+      btnRedo.className = 'sbtn';
+      btnRedo.textContent = '⟳';
+      btnRedo.title = '重录这一段';
+
+      const btnIns = document.createElement('button');
+      btnIns.type = 'button';
+      btnIns.className = 'sbtn ins-seg';
+      btnIns.textContent = '＋';
+      btnIns.title = '在这段后面补录';
+
+      const btnDel = document.createElement('button');
+      btnDel.type = 'button';
+      btnDel.className = 'sbtn del-seg';
+      btnDel.textContent = '✕';
+      btnDel.title = '删除这一段';
+
+      row.append(idxEl, titleEl, dur, btnPlay, btnRedo, btnIns, btnDel);
+      segBox.appendChild(row);
+
+      /* 用 addEventListener 绑定，避免 onclick 被覆盖 */
+      titleEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        startEditSegTitle(day, i, titleEl);
+      });
+      btnPlay.addEventListener('click', (e) => {
+        e.stopPropagation();
+        startPlay('day', day.date, i);
+      });
+      btnRedo.addEventListener('click', (e) => {
+        e.stopPropagation();
+        beginRecord({ type: 'replace', date: day.date, idx: i });
+      });
+      btnIns.addEventListener('click', (e) => {
+        e.stopPropagation();
+        beginRecord({ type: 'insert', date: day.date, idx: i });
+      });
+      btnDel.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        deleteSegment(day, i);
+      });
+    });
+
+    card.appendChild(segBox);
+
+    playDay.addEventListener('click', (e) => {
+      e.stopPropagation();
+      startPlay('day', day.date, 0);
+    });
+    toggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      card.classList.toggle('open');
+      const open = card.classList.contains('open');
+      toggle.textContent = open ? '▴' : '▾';
+      if (open) openDays.add(day.date); else openDays.delete(day.date);
+    });
+    delDay.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteDay(day);
+    });
+
+    return card;
+  }
+
+  function startEditSegTitle(day, idx, titleEl) {
+    if (titleEl.querySelector('input')) return;
+    const seg = day.segments[idx];
+    if (!seg) return;
+
+    const input = document.createElement('input');
+    input.className = 'seg-title-input';
+    input.type = 'text';
+    input.maxLength = 30;
+    input.value = seg.title || '';
+
+    titleEl.textContent = '';
+    titleEl.appendChild(input);
+    input.focus();
+    input.select();
+
+    let done = false;
+    async function finish(commit) {
+      if (done) return;
+      done = true;
+
+      if (commit) {
+        const v = input.value.trim();
+        seg.title = v || ('第 ' + (idx + 1) + ' 段');
+        try { await dbPut(day); } catch (e) { showToast('保存标题失败'); }
+      }
+      titleEl.textContent = segTitle(seg, idx);
+      updatePlayer();
+    }
+
+    input.addEventListener('blur', () => finish(true));
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter')  input.blur();
+      if (e.key === 'Escape') { input.value = seg.title || ''; input.blur(); }
+    });
+  }
+
+  async function deleteSegment(day, idx) {
+    const ok = await confirmDialog('删除第 ' + (idx + 1) + ' 段录音？');
+    if (!ok) return;
+
+    try {
+      const newSegs = day.segments.slice();
+      newSegs.splice(idx, 1);
+      day.segments = newSegs;
+
+      if (!day.segments.length) {
+        await dbDelete(day.date);
+        days = days.filter((d) => d.date !== day.date);
+        openDays.delete(day.date);
+      } else {
+        await dbPut(day);
+      }
+      renderDays();
+      showToast('已删除第 ' + (idx + 1) + ' 段');
+    } catch (err) {
+      console.error('删除分段失败', err);
+      showToast('删除失败：' + (err && err.message ? err.message : err));
+    }
+  }
+
+  /* 删除一整天 */
+  async function deleteDay(day) {
+    const ok = await confirmDialog('删除 ' + day.date + ' 的全部录音？此操作不可撤销。');
+    if (!ok) return;
+
+    try {
+      await dbDelete(day.date);
+      days = days.filter((d) => d.date !== day.date);
+      openDays.delete(day.date);
+
+      // 若正在播放这天，停止播放
+      if (playerList.length && playerList[playerPos] &&
+          playerList[playerPos].date === day.date) {
+        stopPlay();
+      }
+
+      renderDays();
+      showToast('已删除 ' + day.date + ' 的录音');
+    } catch (err) {
+      console.error('删除单日失败', err);
+      showToast('删除失败：' + (err && err.message ? err.message : err));
+    }
+  }
+
+  /* =========================================================
+     7. 录音控制
+     ========================================================= */
+  let mediaRecorder = null;
+  let recChunks = [];
+  let recStartTime = 0;
+  let recTimerId = null;
+  let pending = null;
+
+  const recBtn = $('#recBtn'), recStatus = $('#recStatus'), recTime = $('#recTime');
+
+  function setRecUI(recording) {
+    recBtn.classList.toggle('recording', recording);
+    if (recording) {
+      recStatus.textContent = pending
+        ? (pending.type === 'replace' ? '重录中…点击停止' : '补录中…点击停止')
+        : '录音中…点击停止';
+    } else {
+      recStatus.textContent = '点击开始录音';
+      recTime.textContent = '00:00';
+    }
+  }
+
+  recBtn.addEventListener('click', async () => {
+    ensureAudioCtx();
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      try { mediaRecorder.stop(); } catch (e) {}
+      return;
+    }
+    await beginRecord(null);
+  });
+
+  async function beginRecord(pendingInfo) {
+    if (mediaRecorder && mediaRecorder.state === 'recording') return;
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showToast('当前环境不支持录音，请使用 HTTPS 打开');
+      return;
+    }
+    if (typeof MediaRecorder === 'undefined') {
+      showToast('当前浏览器不支持录音功能');
+      return;
+    }
+
+    pending = pendingInfo || null;
+
+    recBtn.disabled = true;
+    recStatus.textContent = '正在请求麦克风权限…';
+
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      recBtn.disabled = false;
+      pending = null;
+      setRecUI(false);
+      let msg = '无法访问麦克风';
+      if (err && err.name === 'NotAllowedError')       msg = '麦克风权限被拒绝，请在浏览器中允许';
+      else if (err && err.name === 'NotFoundError')    msg = '未检测到麦克风设备';
+      else if (err && err.name === 'NotReadableError') msg = '麦克风被其他程序占用';
+      else if (err && err.name === 'SecurityError')    msg = '安全限制：请使用 HTTPS 打开';
+      else if (err && err.message)                     msg = '无法访问麦克风：' + err.message;
+      showToast(msg);
+      return;
+    }
+
+    recBtn.disabled = false;
+    recChunks = [];
+
+    let opts = {};
+    try {
+      if (MediaRecorder.isTypeSupported) {
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) opts.mimeType = 'audio/webm;codecs=opus';
+        else if (MediaRecorder.isTypeSupported('audio/webm'))        opts.mimeType = 'audio/webm';
+        else if (MediaRecorder.isTypeSupported('audio/mp4'))         opts.mimeType = 'audio/mp4';
+      }
+    } catch (e) {}
+
+    try {
+      mediaRecorder = new MediaRecorder(stream, opts);
+    } catch (e) {
+      try { mediaRecorder = new MediaRecorder(stream); }
+      catch (e2) {
+        stream.getTracks().forEach((t) => t.stop());
+        mediaRecorder = null;
+        pending = null;
+        setRecUI(false);
+        showToast('初始化录音失败');
+        return;
+      }
+    }
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size) recChunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+      clearInterval(recTimerId);
+      const dur = Date.now() - recStartTime;
+
+      if (recChunks.length && dur > 300) {
+        const type = (recChunks[0] && recChunks[0].type) || 'audio/webm';
+        const blob = new Blob(recChunks, { type });
+        try {
+          await saveRecording(blob, dur);
+        } catch (e) {
+          showToast('保存录音失败');
+        }
+      }
+      pending = null;
+      mediaRecorder = null;
+      setRecUI(false);
+    };
+
+    mediaRecorder.onerror = () => {
+      stream.getTracks().forEach((t) => t.stop());
+      clearInterval(recTimerId);
+      pending = null;
+      mediaRecorder = null;
+      setRecUI(false);
+      showToast('录音出错，请重试');
+    };
+
+    try {
+      mediaRecorder.start(1000);
+    } catch (e) {
+      stream.getTracks().forEach((t) => t.stop());
+      mediaRecorder = null;
+      pending = null;
+      setRecUI(false);
+      showToast('无法开始录音');
+      return;
+    }
+
+    recStartTime = Date.now();
+    recTime.textContent = '00:00';
+    recTimerId = setInterval(() => {
+      recTime.textContent = fmtDur(Date.now() - recStartTime);
+    }, 200);
+    setRecUI(true);
+  }
+
+  async function saveRecording(blob, duration) {
+    const targetDate = pending ? pending.date : todayStr();
+
+    let day = days.find((d) => d.date === targetDate);
+    if (!day) {
+      day = { date: targetDate, segments: [] };
+      days.push(day);
+    }
+
+    if (pending && pending.type === 'replace') {
+      const old = day.segments[pending.idx];
+      if (old) {
+        day.segments[pending.idx] = {
+          id: old.id,
+          title: old.title || defaultTitle(),
+          blob, duration,
+          createdAt: Date.now()
+        };
+      }
+    } else if (pending && pending.type === 'insert') {
+      day.segments.splice(pending.idx + 1, 0, {
+        id: uid(),
+        title: defaultTitle(),
+        blob, duration,
+        createdAt: Date.now()
+      });
+    } else {
+      day.segments.push({
+        id: uid(),
+        title: defaultTitle(),
+        blob, duration,
+        createdAt: Date.now()
+      });
+    }
+
+    await dbPut(day);
+    days.sort((a, b) => b.date.localeCompare(a.date));
+    if (pending) openDays.add(day.date);
+    renderDays();
+  }
+
+  /* =========================================================
+     8. 播放器
+     ========================================================= */
+  const audioEl = new Audio();
+  audioEl.preload = 'auto';
+
+  let playerList = [];
+  let playerPos = 0;
+  let playerLoop = 'off';
+  let playerScope = 'day';
+  let currentUrl = null;
+
+  const playerEl = $('#player'), pTitle = $('#pTitle'), pSub = $('#pSub');
+  const pPlay = $('#pPlay'), pLoop = $('#pLoop');
+
+  function buildListForDay(date) {
+    const day = days.find((d) => d.date === date);
+    if (!day) return [];
+    return day.segments.map((s, i) => ({ date, idx: i, blob: s.blob, title: segTitle(s, i) }));
+  }
+
+  function buildListAll() {
+    const out = [];
+    [...days].sort((a, b) => a.date.localeCompare(b.date)).forEach((d) => {
+      d.segments.forEach((s, i) => out.push({ date: d.date, idx: i, blob: s.blob, title: segTitle(s, i) }));
+    });
+    return out;
+  }
+
+  function startPlay(scope, date, startIdx) {
+    ensureAudioCtx();
+    playerScope = scope;
+    playerList = scope === 'day' ? buildListForDay(date) : buildListAll();
+    if (!playerList.length) return;
+    playAt(startIdx || 0);
+  }
+
+  function playAt(pos) {
+    if (!playerList.length) return;
+
+    if (pos < 0) pos = 0;
+    if (pos >= playerList.length) {
+      if (playerLoop !== 'off') pos = 0;
+      else { stopPlay(); return; }
+    }
+
+    playerPos = pos;
+    const item = playerList[pos];
+
+    if (currentUrl) { URL.revokeObjectURL(currentUrl); currentUrl = null; }
+    currentUrl = URL.createObjectURL(item.blob);
+    audioEl.src = currentUrl;
+
+    const p = audioEl.play();
+    if (p && p.catch) p.catch(() => {});
+
+    updatePlayer();
+  }
+
+  function stopPlay() {
+    try { audioEl.pause(); } catch (e) {}
+    audioEl.removeAttribute('src');
+    if (currentUrl) { URL.revokeObjectURL(currentUrl); currentUrl = null; }
+    playerList = [];
+    playerPos = 0;
+    playerEl.classList.add('hidden');
+  }
+
+  audioEl.addEventListener('ended', () => {
+    const next = playerPos + 1;
+
+    if (next < playerList.length) { playAt(next); return; }
+    if (playerLoop === 'off')     { stopPlay(); return; }
+    if (playerLoop === 'single')  { playAt(0); return; }
+    if (playerScope === 'all')    { playAt(0); return; }
+
+    const idx = days.findIndex((d) => d.date === playerList[playerPos].date);
+    for (let i = idx + 1; i < days.length; i++) {
+      if (days[i].segments.length) { startPlay('day', days[i].date, 0); return; }
+    }
+    for (let i = 0; i < days.length; i++) {
+      if (days[i].segments.length) { startPlay('day', days[i].date, 0); return; }
+    }
+    stopPlay();
+  });
+
+  audioEl.addEventListener('play', updatePlayer);
+  audioEl.addEventListener('pause', updatePlayer);
+
+  function updatePlayer() {
+    if (!playerList.length) { playerEl.classList.add('hidden'); return; }
+    playerEl.classList.remove('hidden');
+
+    const cur = playerList[playerPos];
+    if (!cur) return;
+
+    const day = days.find((d) => d.date === cur.date);
+    const seg = day && day.segments[cur.idx];
+    const title = seg ? segTitle(seg, cur.idx) : (cur.title || '未命名');
+
+    const isToday = cur.date === todayStr();
+
+    pTitle.textContent =
+      (isToday ? '今天 · ' + cur.date : cur.date) + ' · ' + title;
+    pSub.textContent =
+      '第 ' + (cur.idx + 1) + '/' + (day ? day.segments.length : 1) + ' 段 · ' +
+      '共 ' + playerList.length + ' 段 · ' +
+      (playerLoop === 'off' ? '不循环' :
+       playerLoop === 'single' ? '单曲循环' : '列表循环');
+
+    pPlay.textContent = audioEl.paused ? '▶' : '⏸';
+
+    if (playerLoop === 'off')         { pLoop.textContent = '➡'; pLoop.title = '不循环（点击切换）'; }
+    else if (playerLoop === 'single') { pLoop.textContent = '🔂'; pLoop.title = '单曲循环'; }
+    else                              { pLoop.textContent = '🔁'; pLoop.title = '列表循环'; }
+  }
+
+  pPlay.onclick = () => {
+    if (!playerList.length) return;
+    ensureAudioCtx();
+    if (audioEl.paused) { const p = audioEl.play(); if (p && p.catch) p.catch(() => {}); }
+    else audioEl.pause();
+  };
+  $('#pPrev').onclick = () => playAt(playerPos - 1);
+  $('#pNext').onclick = () => playAt(playerPos + 1);
+  pLoop.onclick = () => {
+    playerLoop = playerLoop === 'off' ? 'single'
+               : playerLoop === 'single' ? 'all' : 'off';
+    updatePlayer();
+  };
+  $('#pClose').onclick = stopPlay;
+
+  $('#playAllBtn').onclick = () => {
+    if (!days.length) { showToast('还没有录音'); return; }
+    playerLoop = 'all';
+    startPlay('all', null, 0);
+  };
+
+  /* =========================================================
+     9. 事项（打卡）
+     ========================================================= */
+    const TODO_KEY = 'my-todos-v2';
+  let todoList = [];
+
+  function loadTodoData() {
+    try {
+      const raw = localStorage.getItem(TODO_KEY);
+      const data = raw ? JSON.parse(raw) : [];
+      todoList = Array.isArray(data) ? data : [];
+    } catch (e) { todoList = []; }
+  }
+
+  function saveTodoData() {
+    try { localStorage.setItem(TODO_KEY, JSON.stringify(todoList)); } catch (e) {}
+  }
+
+  function todayTodos() { return todoList; }
+
+  const todoInput = $('#todoInput');
+  const todoAddBtn = $('#todoAddBtn');
+  const todosEl = $('#todos');
+  const todoEmpty = $('#todoEmpty');
+  const todoCount = $('#todoCount');
+  const todoClear = $('#todoClear');
+  const todoDayInput = $('#todoDayInput');
+    const DAY_KEY = 'my-todo-day-v2';
+
+  function getDayVal() {
+    try { return localStorage.getItem(DAY_KEY) || ''; }
+    catch (e) { return ''; }
+  }
+
+  function setDayVal(v) {
+    try {
+      if (v) localStorage.setItem(DAY_KEY, v);
+      else localStorage.removeItem(DAY_KEY);
+    } catch (e) {}
+  }
+
+  /* ---------- 背景水印 ---------- */
+  const watermarkLayer = $('#watermarkLayer');
+  const watermarkDay   = $('#watermarkDay');
+  const watermarkDone  = $('#watermarkDone');
+  const todoDayline    = document.querySelector('.todo-dayline');
+
+  function updateWatermark() {
+    const dayVal = getDayVal();
+    watermarkDay.textContent = 'Day ' + (dayVal || '—');
+
+    const list = todayTodos();
+    const doneCount = list.filter((t) => t.done).length;
+    watermarkDone.textContent = '完成 ' + doneCount + ' / ' + list.length;
+  }
+
+  function toggleWatermark() {
+    const willShow = !watermarkLayer.classList.contains('show');
+    if (willShow) updateWatermark();
+    watermarkLayer.classList.toggle('show', willShow);
+  }
+
+  // 输入即存 + 同步水印
+  todoDayInput.addEventListener('input', () => {
+    setDayVal(todoDayInput.value.trim());
+    updateWatermark();
+  });
+
+  // 点击 Day 行切换水印（点击输入框时不触发）
+  todoDayline.addEventListener('click', (e) => {
+    if (e.target === todoDayInput) return;
+    toggleWatermark();
+  });
+
+  // 初次加载时填入今天的值，并初始化水印
+  todoDayInput.value = getDayVal();
+  updateWatermark();
+
+    function renderTodos() {
+    const list = todayTodos();
+    todosEl.innerHTML = '';
+
+    if (!list.length) {
+      todoEmpty.style.display = 'block';
+      todoCount.textContent = '';
+      updateWatermark();
+      return;
+    }
+    todoEmpty.style.display = 'none';
+
+    const doneCount = list.filter((t) => t.done).length;
+    todoCount.textContent = '-完成 ' + doneCount + ' / ' + list.length;
+    updateWatermark();
+
+    list.forEach((item, idx) => {
+      const row = document.createElement('div');
+      row.className = 'todo-item' + (item.done ? ' done' : '');
+
+      const check = document.createElement('div');
+      check.className = 'todo-check';
+      check.textContent = '✓';
+      check.setAttribute('role', 'checkbox');
+      check.setAttribute('aria-checked', item.done ? 'true' : 'false');
+      check.title = item.done ? '取消完成' : '标记完成';
+
+      const text = document.createElement('div');
+      text.className = 'todo-text';
+      text.textContent = item.text;
+      text.title = '点击编辑';
+
+      const moveCol = document.createElement('div');
+      moveCol.className = 'todo-move';
+
+      const moveUp = document.createElement('button');
+      moveUp.type = 'button';
+      moveUp.className = 'todo-mv';
+      moveUp.textContent = '▲';
+      moveUp.title = '上移';
+      moveUp.disabled = idx === 0;
+
+      const moveDown = document.createElement('button');
+      moveDown.type = 'button';
+      moveDown.className = 'todo-mv';
+      moveDown.textContent = '▼';
+      moveDown.title = '下移';
+      moveDown.disabled = idx === list.length - 1;
+
+      moveCol.append(moveUp, moveDown);
+
+      const del = document.createElement('button');
+      del.className = 'todo-del';
+      del.textContent = '✕';
+      del.title = '删除';
+
+      row.append(check, text, moveCol, del);
+      todosEl.appendChild(row);
+
+      check.onclick = () => {
+        item.done = !item.done;
+        saveTodoData();
+        renderTodos();
+      };
+
+      text.onclick = (e) => {
+        e.stopPropagation();
+        startEditTodo(item, text);
+      };
+
+      moveUp.onclick = (e) => {
+        e.stopPropagation();
+        if (idx === 0) return;
+        [list[idx - 1], list[idx]] = [list[idx], list[idx - 1]];
+        saveTodoData();
+        renderTodos();
+      };
+
+      moveDown.onclick = (e) => {
+        e.stopPropagation();
+        if (idx >= list.length - 1) return;
+        [list[idx], list[idx + 1]] = [list[idx + 1], list[idx]];
+        saveTodoData();
+        renderTodos();
+      };
+
+      del.onclick = () => {
+        const i = list.indexOf(item);
+        if (i > -1) list.splice(i, 1);
+        saveTodoData();
+        renderTodos();
+      };
+    });
+  }
+
+  function startEditTodo(item, textEl) {
+    if (textEl.querySelector('input')) return;
+
+    const input = document.createElement('input');
+    input.className = 'todo-text-input';
+    input.type = 'text';
+    input.maxLength = 40;
+    input.value = item.text;
+
+    textEl.textContent = '';
+    textEl.appendChild(input);
+    input.focus();
+    input.select();
+
+    let done = false;
+    function finish(commit) {
+      if (done) return;
+      done = true;
+
+      if (commit) {
+        const v = input.value.trim();
+        if (v) item.text = v;
+        saveTodoData();
+      }
+      textEl.textContent = item.text;
+    }
+
+    input.addEventListener('blur', () => finish(true));
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter')  input.blur();
+      if (e.key === 'Escape') { input.value = item.text; input.blur(); }
+    });
+  }
+
+  function addTodo() {
+    const v = todoInput.value.trim();
+    if (!v) { showToast('请输入事项内容'); return; }
+    const list = todayTodos();
+    list.push({ id: uid(), text: v, done: false });
+    saveTodoData();
+    todoInput.value = '';
+    renderTodos();
+    todoInput.focus();
+  }
+
+  todoAddBtn.onclick = addTodo;
+  todoInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addTodo(); }
+  });
+
+    todoClear.onclick = async () => {
+    const list = todayTodos();
+    if (!list.length) { showToast('还没有事项'); return; }
+    const ok = await confirmDialog('清空全部事项？此操作不可撤销。');
+    if (!ok) return;
+    todoList.length = 0;
+    saveTodoData();
+    renderTodos();
+  };
+
+  /* =========================================================
+     10. 启动
+     ========================================================= */
+  loadTimers();
+  timers.forEach(createCard);
+  updateMeta();
+
+  loadDays();
+
+  loadTodoData();
+  renderTodos();
+
+  window.addEventListener('beforeunload', () => { saveTimers(); saveTodoData(); });
+
+})();
+</script>
+</body>
+</html>
