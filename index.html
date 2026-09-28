@@ -1252,6 +1252,77 @@
     max-width: 130px;
     color: var(--ink);
   }
+    /* 心情历史 */
+  .sun-history-section {
+    margin-top: 16px;
+  }
+  .sun-history-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .sun-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .sun-history-item {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  .sun-history-item-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .sun-history-item-head .sh-date { flex: 1; min-width: 0; }
+  .sun-history-item-head .sh-mood {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary-d);
+  }
+  .sun-history-item-head .sh-toggle {
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .sun-history-item-body {
+    display: none;
+    padding: 10px 14px 12px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--ink-2);
+  }
+  .sun-history-item.open .sun-history-item-body { display: block; }
+  .sun-history-item-body .sh-section {
+    margin-top: 6px;
+    padding: 8px 10px;
+    background: rgba(79, 156, 125, 0.06);
+    border-radius: 8px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .sun-history-item-body .sh-empty {
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+    padding: 8px 0;
+  }
+  .sun-history-item-body .sh-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
   /* =========================================================
      小屏适配
      ========================================================= */
@@ -1351,7 +1422,7 @@
   
   <!-- ================= 种太阳面板 ================= -->
   <section class="panel hidden" id="panel-sun">
-    <div class="sun-heart-line">你的每一份感受都值得被珍藏</div>
+    <div class="sun-heart-line">心情记</div>
 
     <div class="sun-canvas-container">
       <canvas id="moodCanvas" width="560" height="420"></canvas>
@@ -1404,6 +1475,11 @@
           <button id="addSadPresetBtn" class="sun-btn">📌 添加预设</button>
         </div>
       </div>
+    </div>
+        <!-- 心情历史记录 -->
+    <div class="sun-history-section">
+      <div class="sun-history-title">📖 心情历史</div>
+      <div id="sunHistoryList" class="sun-history-list"></div>
     </div>
   </section>
 
@@ -2805,6 +2881,8 @@
   const SUN_KEY_SAD = 'my-sun-sad-note';
   const SUN_KEY_CUSTOM_HAPPY = 'my-sun-custom-happy';
   const SUN_KEY_CUSTOM_SAD = 'my-sun-custom-sad';
+    const SUN_KEY_HISTORY = 'my-sun-history';
+  let sunHistory = {};
 
   const SUN_DEFAULT_HAPPY_PRESETS = [
     "喝到一杯好咖啡/茶", "收到朋友温暖的消息", "运动/流汗后很爽", "吃到喜欢的食物",
@@ -2838,14 +2916,139 @@
     } catch (e) {}
   }
 
-  function saveSunData() {
+    function saveSunData() {
     try {
       localStorage.setItem(SUN_KEY_MOOD, String(sunMood));
       localStorage.setItem(SUN_KEY_HAPPY, sunHappyNote);
       localStorage.setItem(SUN_KEY_SAD, sunSadNote);
       localStorage.setItem(SUN_KEY_CUSTOM_HAPPY, JSON.stringify(sunCustomHappy));
       localStorage.setItem(SUN_KEY_CUSTOM_SAD, JSON.stringify(sunCustomSad));
+      snapshotSunToday();
     } catch (e) {}
+  }
+    function loadSunHistory() {
+    try {
+      const raw = localStorage.getItem(SUN_KEY_HISTORY);
+      sunHistory = raw ? JSON.parse(raw) : {};
+      if (typeof sunHistory !== 'object' || !sunHistory) sunHistory = {};
+    } catch (e) { sunHistory = {}; }
+  }
+
+  function saveSunHistory() {
+    try {
+      localStorage.setItem(SUN_KEY_HISTORY, JSON.stringify(sunHistory));
+    } catch (e) {}
+  }
+
+  function escapeHtmlText(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function snapshotSunToday() {
+    const today = todayStr();
+    const hasContent = sunMood !== 0 || sunHappyNote.trim() || sunSadNote.trim();
+    if (!hasContent && !sunHistory[today]) return;
+    sunHistory[today] = {
+      mood: sunMood,
+      happyNote: sunHappyNote,
+      sadNote: sunSadNote,
+      savedAt: Date.now()
+    };
+    saveSunHistory();
+    renderSunHistory();
+  }
+
+  function renderSunHistory() {
+    const container = document.getElementById('sunHistoryList');
+    if (!container) return;
+    const dates = Object.keys(sunHistory).sort().reverse();
+    if (!dates.length) {
+      container.innerHTML = '<div class="sh-empty">还没有记录，调整心情或写笔记会自动保存</div>';
+      return;
+    }
+    container.innerHTML = '';
+
+    dates.forEach((date) => {
+      const rec = sunHistory[date];
+      const isToday = date === todayStr();
+
+      const item = document.createElement('div');
+      item.className = 'sun-history-item';
+
+      const head = document.createElement('div');
+      head.className = 'sun-history-item-head';
+
+      const dateEl = document.createElement('span');
+      dateEl.className = 'sh-date';
+      dateEl.textContent = isToday ? ('今天 · ' + date) : date;
+
+      const moodEl = document.createElement('span');
+      moodEl.className = 'sh-mood';
+      moodEl.textContent = '🌞 ' + (rec.mood || 0);
+
+      const toggle = document.createElement('span');
+      toggle.className = 'sh-toggle';
+      toggle.textContent = '▾';
+
+      head.append(dateEl, moodEl, toggle);
+
+      const body = document.createElement('div');
+      body.className = 'sun-history-item-body';
+
+      if (rec.happyNote && rec.happyNote.trim()) {
+        const happyDiv = document.createElement('div');
+        happyDiv.className = 'sh-section';
+        happyDiv.innerHTML = '<strong>🍀 小确幸</strong><br>' + escapeHtmlText(rec.happyNote).replace(/\n/g, '<br>');
+        body.appendChild(happyDiv);
+      }
+
+      if (rec.sadNote && rec.sadNote.trim()) {
+        const sadDiv = document.createElement('div');
+        sadDiv.className = 'sh-section';
+        sadDiv.innerHTML = '<strong>🗑️ 垃圾桶</strong><br>' + escapeHtmlText(rec.sadNote).replace(/\n/g, '<br>');
+        body.appendChild(sadDiv);
+      }
+
+      if (!rec.happyNote && !rec.sadNote) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'sh-empty';
+        emptyDiv.textContent = '（无笔记内容）';
+        body.appendChild(emptyDiv);
+      }
+
+      const actions = document.createElement('div');
+      actions.className = 'sh-actions';
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'sun-btn';
+      delBtn.textContent = '🗑️ 删除';
+      delBtn.onclick = async (e) => {
+        e.stopPropagation();
+        const ok = await confirmDialog('删除 ' + date + ' 的心情记录？');
+        if (!ok) return;
+        delete sunHistory[date];
+        saveSunHistory();
+        renderSunHistory();
+        showToast('已删除');
+      };
+      actions.appendChild(delBtn);
+      body.appendChild(actions);
+
+      item.appendChild(head);
+      item.appendChild(body);
+      container.appendChild(item);
+
+      head.onclick = () => {
+        item.classList.toggle('open');
+        toggle.textContent = item.classList.contains('open') ? '▴' : '▾';
+      };
+    });
   }
 
   function sunAppendWithAutoNumber(currentText, newContent) {
@@ -3466,10 +3669,12 @@
     }
   }
 
-    /* 种太阳初始化 */
+      /* 种太阳初始化 */
   loadSunData();
+  loadSunHistory();
   initSunControls();
   renderSunPanel();
+  renderSunHistory();
 
   window.addEventListener('beforeunload', () => { saveTimers(); saveTodoData(); saveSunData(); });
 
