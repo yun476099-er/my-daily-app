@@ -259,10 +259,10 @@
   }
 
   /* 完成比例：错位摆放，字距拉大，与 Day 形成不对称感 */
-    .watermark-done{
+        .watermark-done{
     font-size: clamp(30px, 7.5vw, 56px);
     font-weight: 500;
-    font-family: 'Kaiti SC', 'STKaiti', 'KaiTi', 'Songti SC', 'STSong', Georgia, serif;
+    font-family: 'Times New Roman', 'Georgia', 'Kaiti SC', 'STKaiti', 'KaiTi', 'Songti SC', serif;
     font-style: italic;
     letter-spacing: 1px;
     line-height: 1.15;
@@ -1888,7 +1888,7 @@
     const timers = [];
     const cards = new Map();
 
-    function saveTimers() {
+        function saveTimers() {
     try {
       localStorage.setItem(T_KEY, JSON.stringify({
         savedAt: Date.now(),
@@ -1904,6 +1904,14 @@
       }));
     } catch (e) {}
     try { snapshotTimerHistory(); } catch (e) {}
+
+    // 当前在计时器页 → 立刻刷新历史区（今日会跟随上方变化）
+    try {
+      const activeTab = document.querySelector('.tabs button.active');
+      if (activeTab && activeTab.dataset.tab === 'timer') {
+        renderTimerHistory();
+      }
+    } catch (e) {}
   }
       function loadTimerHistory() {
     try {
@@ -1985,11 +1993,16 @@
       const headRow = document.createElement('div');
       headRow.className = 'timer-history-headrow';
 
-      const dateEl = document.createElement('span');
+            const dateEl = document.createElement('span');
       dateEl.className = 'timer-history-date';
       let headText = isToday ? ('今天 · ' + date) : date;
       if (rec.day) headText += ' · Day ' + rec.day;
       if (rec.total > 0) headText += ' -完成 ' + (rec.done || 0) + ' / ' + rec.total;
+      try {
+        if (sunHistory && sunHistory[date] && sunHistory[date].mood !== undefined && sunHistory[date].mood !== 0) {
+          headText += ' · 心情 ' + sunHistory[date].mood;
+        }
+      } catch (e) {}
       dateEl.textContent = headText;
       headRow.appendChild(dateEl);
 
@@ -3219,7 +3232,7 @@
       moodVal = (typeof sunMood === 'number') ? sunMood : 0;
     } catch (e) { moodVal = 0; }
 
-    watermarkDone.textContent = '心情 ' + moodVal + ' 分';
+        watermarkDone.textContent = '心情 ' + moodVal;
   }
 
   function toggleWatermark() {
@@ -4080,11 +4093,12 @@
     updateWatermark();
   }
 
-  function setSunMood(val) {
+    function setSunMood(val) {
     val = Math.min(5, Math.max(-5, val));
     sunMood = val;
     saveSunData();
     updateSunMoodUI();
+    try { renderTimerHistory(); } catch (e) {}
   }
 
     function renderSunPresets(containerId, defaults, customs, hiddenList, type) {
