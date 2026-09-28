@@ -1594,11 +1594,16 @@
   /* =========================================================
      2. Tab 切换
      ========================================================= */
-  document.querySelectorAll('.tabs button').forEach((btn) => {
+    document.querySelectorAll('.tabs button').forEach((btn) => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b === btn));
       document.querySelectorAll('.panel').forEach((p) => p.classList.add('hidden'));
       $('#panel-' + btn.dataset.tab).classList.remove('hidden');
+
+      // 切到种太阳时，重新渲染一次，确保画布正确绘制
+      if (btn.dataset.tab === 'sun') {
+        renderSunPanel();
+      }
     });
   });
 
