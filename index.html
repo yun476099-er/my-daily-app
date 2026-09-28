@@ -1379,7 +1379,7 @@
     <button data-tab="timer" class="active">计时器</button>
     <button data-tab="rec">录音</button>
     <button data-tab="todo">事项</button>
-    <button data-tab="sun">种太阳</button>
+    <button data-tab="sun">心情记</button>
   </nav>
 
   <!-- ================= 计时器面板 ================= -->
@@ -1443,8 +1443,7 @@
   
   <!-- ================= 种太阳面板 ================= -->
   <section class="panel hidden" id="panel-sun">
-        <div class="sun-heart-line">
-      <span class="sun-heart-text">心情记</span>
+                <div class="sun-heart-line">
       <span class="sun-heart-range">−5 ~ +5</span>
     </div>
 
@@ -3627,13 +3626,12 @@
     span.innerText = text;
     span.title = '点击添加 · 长按可编辑';
 
-    let longPressTimer = null;
-    let longPressed = false;
+    let pressTimer = null;
+    let wasLongPress = false;
     let isEditing = false;
 
     function beginEdit() {
       if (isEditing) return;
-      if (span.querySelector('input')) return;
       isEditing = true;
 
       const input = document.createElement('input');
@@ -3647,51 +3645,64 @@
       input.focus();
       input.select();
 
-      let done = false;
+      let finished = false;
       function finish(commit) {
-        if (done) return; done = true;
+        if (finished) return;
+        finished = true;
         isEditing = false;
-        if (commit) {
-          const v = input.value.trim();
-          if (v) handlers.onEdit(v);
+
+        const v = commit ? input.value.trim() : '';
+
+        // 关键修复：无论是否提交，先把 span 恢复成原文字
+        span.textContent = '';
+        span.innerText = text;
+
+        // 若内容真的变了，再交给上层去持久化 + 重渲染
+        if (commit && v && v !== text) {
+          handlers.onEdit(v);
         }
       }
+
       input.addEventListener('blur', () => finish(true));
       input.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Enter') input.blur();
+        if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
         if (ev.key === 'Escape') { input.value = text; input.blur(); }
       });
     }
 
-    span.onclick = () => {
-      if (longPressed) { longPressed = false; return; }
+    span.addEventListener('click', () => {
+      // 长按刚结束，忽略这一次点击
+      if (wasLongPress) { wasLongPress = false; return; }
       if (isEditing) return;
       handlers.onClick();
-    };
+    });
 
-    // 长按（触摸）
+    // 触摸长按
     span.addEventListener('touchstart', () => {
-      longPressed = false;
-      clearTimeout(longPressTimer);
-      longPressTimer = setTimeout(() => {
-        longPressed = true;
+      if (isEditing) return;
+      wasLongPress = false;
+      clearTimeout(pressTimer);
+      pressTimer = setTimeout(() => {
+        wasLongPress = true;
         beginEdit();
       }, 550);
     }, { passive: true });
-    span.addEventListener('touchend', () => clearTimeout(longPressTimer), { passive: true });
-    span.addEventListener('touchmove', () => clearTimeout(longPressTimer), { passive: true });
+    span.addEventListener('touchend', () => clearTimeout(pressTimer), { passive: true });
+    span.addEventListener('touchcancel', () => clearTimeout(pressTimer), { passive: true });
+    span.addEventListener('touchmove', () => clearTimeout(pressTimer), { passive: true });
 
-    // 长按（鼠标，方便电脑上测试）
+    // 鼠标长按（电脑上测试用）
     span.addEventListener('mousedown', () => {
-      longPressed = false;
-      clearTimeout(longPressTimer);
-      longPressTimer = setTimeout(() => {
-        longPressed = true;
+      if (isEditing) return;
+      wasLongPress = false;
+      clearTimeout(pressTimer);
+      pressTimer = setTimeout(() => {
+        wasLongPress = true;
         beginEdit();
       }, 550);
     });
-    span.addEventListener('mouseup', () => clearTimeout(longPressTimer));
-    span.addEventListener('mouseleave', () => clearTimeout(longPressTimer));
+    span.addEventListener('mouseup', () => clearTimeout(pressTimer));
+    span.addEventListener('mouseleave', () => clearTimeout(pressTimer));
 
     const editBtn = document.createElement('button');
     editBtn.type = 'button';
