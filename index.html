@@ -421,6 +421,109 @@
     flex-direction: column;
     gap: 6px;
   }
+    .timer-history-headrow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .timer-history-edit-btn {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    background: #eef5f1;
+    border: 1px solid var(--line-2);
+    border-radius: 8px;
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .timer-history-edit-btn:hover {
+    background: var(--primary-l);
+    color: var(--primary-d);
+  }
+  .te-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+  .te-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .te-name {
+    flex: 1;
+    min-width: 0;
+    padding: 7px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    background: #f8fbf9;
+    border: 1px solid var(--line-2);
+    border-radius: 8px;
+    outline: none;
+  }
+  .te-name:focus {
+    border-color: var(--primary);
+    background: #fff;
+  }
+  .te-hours {
+    width: 64px;
+    padding: 7px 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    text-align: center;
+    background: #f8fbf9;
+    border: 1px solid var(--line-2);
+    border-radius: 8px;
+    outline: none;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  .te-hours::-webkit-outer-spin-button,
+  .te-hours::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .te-hours:focus {
+    border-color: var(--primary);
+    background: #fff;
+  }
+  .te-unit {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .te-del {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--line-2);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .te-del:hover {
+    background: var(--rose-l);
+    color: #b06060;
+    border-color: var(--rose);
+  }
   .timer-history-item {
     background: #fff;
     border: 1px solid var(--line);
@@ -428,11 +531,14 @@
     padding: 10px 14px;
     box-shadow: var(--shadow-sm);
   }
-  .timer-history-date {
+    .timer-history-date {
     font-size: 12px;
     font-weight: 600;
     color: var(--primary-d);
-    margin-bottom: 4px;
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+    margin-bottom: 0;
   }
   .timer-history-scores {
     font-size: 12px;
@@ -1799,31 +1905,72 @@
     } catch (e) {}
     try { snapshotTimerHistory(); } catch (e) {}
   }
-    function loadTimerHistory() {
+      function loadTimerHistory() {
     try {
       const raw = localStorage.getItem(TH_KEY);
       timerHistory = raw ? JSON.parse(raw) : {};
       if (typeof timerHistory !== 'object' || !timerHistory) timerHistory = {};
     } catch (e) { timerHistory = {}; }
+
+    // 兼容旧结构：{ date: { name: ms } } → { date: { items: [...] } }
+    let migrated = false;
+    Object.keys(timerHistory).forEach((date) => {
+      const rec = timerHistory[date];
+      if (!rec || typeof rec !== 'object') return;
+      if (Array.isArray(rec.items)) return; // 已是新结构
+      const items = [];
+      Object.entries(rec).forEach(([name, ms]) => {
+        const n = Number(ms) || 0;
+        if (n > 0) items.push({ id: uid(), name, ms: n });
+      });
+      timerHistory[date] = { items, day: '', done: 0, total: 0, locked: true };
+      migrated = true;
+    });
+    if (migrated) saveTimerHistory();
   }
 
   function saveTimerHistory() {
     try { localStorage.setItem(TH_KEY, JSON.stringify(timerHistory)); } catch (e) {}
   }
 
-  function snapshotTimerHistory() {
+    function snapshotTimerHistory() {
     const today = todayStr();
-    const snap = {};
+    const existing = timerHistory[today];
+
+    // 用户手动编辑过当天记录 → 锁定，不再被上方变化影响
+    if (existing && existing.locked) return;
+
+    const items = [];
     timers.forEach((t) => {
       const elapsed = t.accumulated + (t.running ? Date.now() - t.startedAt : 0);
-      if (elapsed > 0) snap[t.name] = elapsed;
+      if (elapsed > 0) items.push({ id: t.id, name: t.name, ms: elapsed });
     });
-    if (Object.keys(snap).length === 0) return;
-    timerHistory[today] = snap;
+
+    // 抓取当天事项数据
+    let dayVal = '';
+    let doneCount = 0;
+    let total = 0;
+    try {
+      dayVal = getDayVal();
+      const list = todayTodos();
+      total = list.length;
+      doneCount = list.filter((x) => x.done).length;
+    } catch (e) {}
+
+    // 无计时 + 无事项 → 不写
+    if (!items.length && !dayVal && total === 0) return;
+
+    timerHistory[today] = {
+      items,
+      day: dayVal,
+      done: doneCount,
+      total: total,
+      locked: false
+    };
     saveTimerHistory();
   }
 
-  function renderTimerHistory() {
+    function renderTimerHistory() {
     const container = document.getElementById('timerHistoryList');
     if (!container) return;
     const dates = Object.keys(timerHistory).sort().reverse();
@@ -1832,24 +1979,64 @@
       return;
     }
     container.innerHTML = '';
+
     dates.forEach((date) => {
-      const rec = timerHistory[date];
+      const rec = timerHistory[date] || {};
+      const items = Array.isArray(rec.items) ? rec.items : [];
+      const isToday = date === todayStr();
+
       const item = document.createElement('div');
       item.className = 'timer-history-item';
 
-      const dateEl = document.createElement('div');
-      dateEl.className = 'timer-history-date';
-      dateEl.textContent = date === todayStr() ? ('今天 · ' + date) : date;
-      item.appendChild(dateEl);
+      /* 第一行：日期 + Day + 完成比例 + 编辑 */
+      const headRow = document.createElement('div');
+      headRow.className = 'timer-history-headrow';
 
-      const entries = Object.entries(rec).filter(([, v]) => v > 0);
-      if (entries.length) {
+      const dateEl = document.createElement('span');
+      dateEl.className = 'timer-history-date';
+      let headText = isToday ? ('今天 · ' + date) : date;
+      if (rec.day) headText += ' · Day ' + rec.day;
+      if (rec.total > 0) headText += ' -完成 ' + (rec.done || 0) + ' / ' + rec.total;
+      dateEl.textContent = headText;
+      headRow.appendChild(dateEl);
+
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className = 'timer-history-edit-btn';
+      editBtn.textContent = '✏️';
+      editBtn.title = '编辑此日记录';
+      editBtn.onclick = (e) => {
+        e.stopPropagation();
+        showTimerHistoryEditDialog(date, rec);
+      };
+      headRow.appendChild(editBtn);
+
+      item.appendChild(headRow);
+
+      /* 第二行：项目 */
+      const validItems = items.filter((x) => x && x.ms > 0);
+      if (validItems.length) {
         const scoresEl = document.createElement('div');
         scoresEl.className = 'timer-history-scores';
-        scoresEl.innerHTML = entries.map(([name, ms]) => {
-          const h = (ms / 3600000).toFixed(1);
-          return '<span class="th-name">' + escapeHtmlText(name) + '</span><span class="th-value">' + h + 'h</span>';
-        }).join('<span class="th-sep">|</span>');
+
+        validItems.forEach((it, idx) => {
+          if (idx > 0) {
+            const sep = document.createElement('span');
+            sep.className = 'th-sep';
+            sep.textContent = '|';
+            scoresEl.appendChild(sep);
+          }
+          const nameEl = document.createElement('span');
+          nameEl.className = 'th-name';
+          nameEl.textContent = it.name;
+          scoresEl.appendChild(nameEl);
+
+          const valEl = document.createElement('span');
+          valEl.className = 'th-value';
+          valEl.textContent = (it.ms / 3600000).toFixed(1) + 'h';
+          scoresEl.appendChild(valEl);
+        });
+
         item.appendChild(scoresEl);
       } else {
         const emptyEl = document.createElement('div');
@@ -1861,7 +2048,131 @@
       container.appendChild(item);
     });
   }
+    function showTimerHistoryEditDialog(date, rec) {
+    if (!rec.items) rec.items = [];
+    const workingItems = rec.items.map((x) => ({ ...x }));
 
+    const mk = document.createElement('div');
+    mk.className = 'confirm-mask';
+
+    const box = document.createElement('div');
+    box.className = 'confirm-box';
+    box.style.maxWidth = '380px';
+    box.style.textAlign = 'left';
+    box.style.padding = '20px 18px 16px';
+
+    const title = document.createElement('h3');
+    title.textContent = '✏️ 编辑 ' + date;
+    title.style.cssText = 'margin:0 0 12px; font-size:15px; color:var(--ink); text-align:center;';
+    box.appendChild(title);
+
+    const list = document.createElement('div');
+    list.className = 'te-list';
+    box.appendChild(list);
+
+    function renderRows() {
+      list.innerHTML = '';
+      workingItems.forEach((it, idx) => {
+        const row = document.createElement('div');
+        row.className = 'te-row';
+
+        const nameInp = document.createElement('input');
+        nameInp.type = 'text';
+        nameInp.className = 'te-name';
+        nameInp.value = it.name || '';
+        nameInp.maxLength = 24;
+        nameInp.placeholder = '项目名称';
+        nameInp.addEventListener('input', () => { it.name = nameInp.value; });
+        row.appendChild(nameInp);
+
+        const msInp = document.createElement('input');
+        msInp.type = 'number';
+        msInp.className = 'te-hours';
+        msInp.min = '0';
+        msInp.step = '0.1';
+        msInp.value = ((it.ms || 0) / 3600000).toFixed(1);
+        msInp.addEventListener('input', () => {
+          const v = parseFloat(msInp.value);
+          it.ms = (isFinite(v) && v >= 0) ? Math.round(v * 3600000) : 0;
+        });
+        row.appendChild(msInp);
+
+        const unit = document.createElement('span');
+        unit.className = 'te-unit';
+        unit.textContent = 'h';
+        row.appendChild(unit);
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'te-del';
+        delBtn.textContent = '✕';
+        delBtn.onclick = () => {
+          workingItems.splice(idx, 1);
+          renderRows();
+        };
+        row.appendChild(delBtn);
+
+        list.appendChild(row);
+      });
+    }
+    renderRows();
+
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'sun-btn';
+    addBtn.textContent = '＋ 添加一项';
+    addBtn.style.marginTop = '10px';
+    addBtn.onclick = () => {
+      workingItems.push({ id: uid(), name: '', ms: 0 });
+      renderRows();
+    };
+    box.appendChild(addBtn);
+
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex; gap:8px; margin-top:16px;';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'sun-btn';
+    cancelBtn.textContent = '取消';
+    cancelBtn.style.flex = '1';
+    cancelBtn.style.padding = '9px 0';
+    actions.appendChild(cancelBtn);
+
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'btn primary';
+    saveBtn.textContent = '保存';
+    saveBtn.style.flex = '1';
+    saveBtn.style.padding = '9px 0';
+    actions.appendChild(saveBtn);
+
+    box.appendChild(actions);
+    mk.appendChild(box);
+    document.body.appendChild(mk);
+    requestAnimationFrame(() => mk.classList.add('show'));
+
+    function close() {
+      mk.classList.remove('show');
+      setTimeout(() => mk.remove(), 220);
+    }
+
+    cancelBtn.onclick = close;
+    mk.addEventListener('click', (e) => { if (e.target === mk) close(); });
+    box.addEventListener('click', (e) => e.stopPropagation());
+
+    saveBtn.onclick = () => {
+      const cleaned = workingItems
+        .filter((x) => x.name && x.name.trim() && x.ms > 0)
+        .map((x) => ({ id: x.id || uid(), name: x.name.trim(), ms: x.ms }));
+      rec.items = cleaned;
+      rec.locked = true; // 锁定，不再随上方变化
+      saveTimerHistory();
+      renderTimerHistory();
+      showToast('已保存并锁定此日记录');
+      close();
+    };
+  }
   const T_INIT_KEY = 'my-timers-initialized-v1';
   function initDefaultTimers() {
     if (localStorage.getItem(T_INIT_KEY) === '1') return;
@@ -2817,8 +3128,9 @@
     } catch (e) { todoList = []; }
   }
 
-  function saveTodoData() {
+    function saveTodoData() {
     try { localStorage.setItem(TODO_KEY, JSON.stringify(todoList)); } catch (e) {}
+    try { snapshotTimerHistory(); } catch (e) {}
   }
 
   function todayTodos() { return todoList; }
@@ -2837,11 +3149,12 @@
     catch (e) { return ''; }
   }
 
-  function setDayVal(v) {
+    function setDayVal(v) {
     try {
       if (v) localStorage.setItem(DAY_KEY, v);
       else localStorage.removeItem(DAY_KEY);
     } catch (e) {}
+    try { snapshotTimerHistory(); } catch (e) {}
   }
 
   /* ---------- 背景水印 ---------- */
