@@ -1038,6 +1038,27 @@
     height: 1px;
     background: linear-gradient(90deg, transparent, #bdd6c0, transparent);
   }
+    .sun-heart-line .sun-heart-text {
+    font-weight: 600;
+    color: var(--primary-d);
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+  .sun-heart-line .sun-heart-range {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    color: var(--primary-d);
+    background: linear-gradient(90deg,
+      rgba(143,168,156,0.16) 0%,
+      rgba(79,156,125,0.14) 45%,
+      rgba(255,213,110,0.24) 100%);
+    border: 1px solid rgba(79,156,125,0.22);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
   .sun-canvas-container {
     position: relative;
     width: 100%;
@@ -1422,7 +1443,10 @@
   
   <!-- ================= 种太阳面板 ================= -->
   <section class="panel hidden" id="panel-sun">
-    <div class="sun-heart-line">心情记</div>
+        <div class="sun-heart-line">
+      <span class="sun-heart-text">心情记</span>
+      <span class="sun-heart-range">−5 ~ +5</span>
+    </div>
 
     <div class="sun-canvas-container">
       <canvas id="moodCanvas" width="560" height="420"></canvas>
@@ -2883,6 +2907,10 @@
   const SUN_KEY_CUSTOM_SAD = 'my-sun-custom-sad';
     const SUN_KEY_HISTORY = 'my-sun-history';
   let sunHistory = {};
+    const SUN_KEY_HIDDEN_HAPPY = 'my-sun-hidden-happy';
+  const SUN_KEY_HIDDEN_SAD = 'my-sun-hidden-sad';
+  let sunHiddenHappy = [];
+  let sunHiddenSad = [];
 
   const SUN_DEFAULT_HAPPY_PRESETS = [
     "喝到一杯好咖啡/茶", "收到朋友温暖的消息", "运动/流汗后很爽", "吃到喜欢的食物",
@@ -2910,6 +2938,12 @@
       const ch = localStorage.getItem(SUN_KEY_CUSTOM_HAPPY);
       sunCustomHappy = ch ? JSON.parse(ch) : [];
       if (!Array.isArray(sunCustomHappy)) sunCustomHappy = [];
+            const hh = localStorage.getItem(SUN_KEY_HIDDEN_HAPPY);
+      sunHiddenHappy = hh ? JSON.parse(hh) : [];
+      if (!Array.isArray(sunHiddenHappy)) sunHiddenHappy = [];
+      const hs = localStorage.getItem(SUN_KEY_HIDDEN_SAD);
+      sunHiddenSad = hs ? JSON.parse(hs) : [];
+      if (!Array.isArray(sunHiddenSad)) sunHiddenSad = [];
       const cs = localStorage.getItem(SUN_KEY_CUSTOM_SAD);
       sunCustomSad = cs ? JSON.parse(cs) : [];
       if (!Array.isArray(sunCustomSad)) sunCustomSad = [];
@@ -2923,6 +2957,8 @@
       localStorage.setItem(SUN_KEY_SAD, sunSadNote);
       localStorage.setItem(SUN_KEY_CUSTOM_HAPPY, JSON.stringify(sunCustomHappy));
       localStorage.setItem(SUN_KEY_CUSTOM_SAD, JSON.stringify(sunCustomSad));
+            localStorage.setItem(SUN_KEY_HIDDEN_HAPPY, JSON.stringify(sunHiddenHappy));
+      localStorage.setItem(SUN_KEY_HIDDEN_SAD, JSON.stringify(sunHiddenSad));
       snapshotSunToday();
     } catch (e) {}
   }
@@ -2964,6 +3000,66 @@
     renderSunHistory();
   }
 
+    function showSunHistoryEditDialog(date, rec) {
+    const mask = document.createElement('div');
+    mask.className = 'confirm-mask';
+
+    const box = document.createElement('div');
+    box.className = 'confirm-box';
+    box.style.maxWidth = '360px';
+    box.style.textAlign = 'left';
+    box.style.padding = '20px 18px 16px';
+
+    box.innerHTML = `
+      <h3 style="margin:0 0 12px; font-size:15px; color:var(--ink); text-align:center;">✏️ 编辑 ${date}</h3>
+      <label style="display:block; font-size:12px; color:var(--muted); margin:6px 0 4px;">🌞 心情值（−5 ~ +5）</label>
+      <input type="number" id="sunEditMood" min="-5" max="5" step="1" value="${rec.mood || 0}"
+        style="width:100%; padding:9px 12px; border:1px solid var(--line-2); border-radius:10px;
+               font-family:inherit; font-size:14px; background:#f8fbf9; color:var(--ink);
+               outline:none; text-align:center;">
+      <label style="display:block; font-size:12px; color:var(--muted); margin:10px 0 4px;">🍀 小确幸</label>
+      <textarea id="sunEditHappy" class="sun-note-textarea" rows="4" style="min-height:60px;"></textarea>
+      <label style="display:block; font-size:12px; color:var(--muted); margin:10px 0 4px;">🗑️ 垃圾桶</label>
+      <textarea id="sunEditSad" class="sun-note-textarea" rows="4" style="min-height:60px;"></textarea>
+      <div style="display:flex; gap:8px; margin-top:14px;">
+        <button class="sun-btn" id="sunEditCancel" style="flex:1; padding:9px 0;">取消</button>
+        <button class="btn primary" id="sunEditSave" style="flex:1; padding:9px 0;">保存</button>
+      </div>
+    `;
+    mask.appendChild(box);
+    document.body.appendChild(mask);
+    requestAnimationFrame(() => mask.classList.add('show'));
+
+    // 填充内容
+    box.querySelector('#sunEditHappy').value = rec.happyNote || '';
+    box.querySelector('#sunEditSad').value = rec.sadNote || '';
+
+    function close() {
+      mask.classList.remove('show');
+      setTimeout(() => mask.remove(), 220);
+    }
+
+    box.querySelector('#sunEditCancel').onclick = close;
+    mask.addEventListener('click', (e) => { if (e.target === mask) close(); });
+    box.addEventListener('click', (e) => e.stopPropagation());
+
+    box.querySelector('#sunEditSave').onclick = () => {
+      let moodVal = parseInt(box.querySelector('#sunEditMood').value, 10);
+      if (isNaN(moodVal)) moodVal = 0;
+      moodVal = Math.max(-5, Math.min(5, moodVal));
+
+      sunHistory[date] = {
+        mood: moodVal,
+        happyNote: box.querySelector('#sunEditHappy').value,
+        sadNote: box.querySelector('#sunEditSad').value,
+        savedAt: rec.savedAt || Date.now()
+      };
+      saveSunHistory();
+      renderSunHistory();
+      showToast('已保存');
+      close();
+    };
+  }
   function renderSunHistory() {
     const container = document.getElementById('sunHistoryList');
     if (!container) return;
@@ -3022,8 +3118,18 @@
         body.appendChild(emptyDiv);
       }
 
-      const actions = document.createElement('div');
+            const actions = document.createElement('div');
       actions.className = 'sh-actions';
+
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className = 'sun-btn';
+      editBtn.textContent = '✏️ 编辑';
+      editBtn.onclick = (e) => {
+        e.stopPropagation();
+        showSunHistoryEditDialog(date, rec);
+      };
+
       const delBtn = document.createElement('button');
       delBtn.type = 'button';
       delBtn.className = 'sun-btn';
@@ -3037,6 +3143,8 @@
         renderSunHistory();
         showToast('已删除');
       };
+
+      actions.appendChild(editBtn);
       actions.appendChild(delBtn);
       body.appendChild(actions);
 
@@ -3462,105 +3570,158 @@
     updateSunMoodUI();
   }
 
-  function renderSunPresets(containerId, defaults, customs, type) {
+    function renderSunPresets(containerId, defaults, customs, hiddenList, type) {
     const container = document.getElementById(containerId);
     if (!container) return;
     container.innerHTML = '';
 
-    defaults.forEach((text) => {
-      const item = document.createElement('div');
-      item.className = 'sun-preset-item';
-      const span = document.createElement('span');
-      span.className = 'sun-preset-text';
-      span.innerText = text;
-      span.title = text;
-      span.onclick = () => {
-        if (type === 'happy') {
-          sunHappyNote = sunAppendWithAutoNumber(sunHappyNote, text);
-          const ta = document.getElementById('happyNote');
-          if (ta) ta.value = sunHappyNote;
-        } else {
-          sunSadNote = sunAppendWithAutoNumber(sunSadNote, text);
-          const ta = document.getElementById('sadNote');
-          if (ta) ta.value = sunSadNote;
-        }
-        saveSunData();
-      };
-      item.appendChild(span);
-      container.appendChild(item);
-    });
+    // 可见的默认项（过滤掉被删的）
+    const visibleDefaults = defaults.filter((t) => !hiddenList.includes(t));
 
-    customs.forEach((text, idx) => {
-      const item = document.createElement('div');
-      item.className = 'sun-preset-item';
-      const span = document.createElement('span');
-      span.className = 'sun-preset-text';
-      span.innerText = text;
-      span.title = text;
-      span.onclick = () => {
-        if (type === 'happy') {
-          sunHappyNote = sunAppendWithAutoNumber(sunHappyNote, text);
-          const ta = document.getElementById('happyNote');
-          if (ta) ta.value = sunHappyNote;
-        } else {
-          sunSadNote = sunAppendWithAutoNumber(sunSadNote, text);
-          const ta = document.getElementById('sadNote');
-          if (ta) ta.value = sunSadNote;
-        }
-        saveSunData();
-      };
-
-      const editBtn = document.createElement('button');
-      editBtn.type = 'button';
-      editBtn.innerText = '✏️';
-      editBtn.className = 'sun-preset-edit';
-      editBtn.onclick = (e) => {
-        e.stopPropagation();
-        if (span.querySelector('input')) return;
-        const input = document.createElement('input');
-        input.className = 'sun-preset-edit-input';
-        input.type = 'text';
-        input.maxLength = 40;
-        input.value = text;
-        span.textContent = '';
-        span.appendChild(input);
-        input.focus();
-        input.select();
-        let done = false;
-        function finish(commit) {
-          if (done) return; done = true;
-          if (commit) {
-            const v = input.value.trim();
-            if (v && v !== text) {
-              customs[idx] = v;
-              saveSunData();
-            }
-          }
+    // 默认项：也带编辑、删除
+    visibleDefaults.forEach((text) => {
+      const item = buildPresetItem(text, {
+        onClick: () => applyPreset(type, text),
+        onEdit: (newText) => {
+          if (!newText || newText === text) return;
+          hiddenList.push(text);
+          customs.push(newText);
+          saveSunData();
+          renderSunPanel();
+        },
+        onDelete: () => {
+          hiddenList.push(text);
+          saveSunData();
           renderSunPanel();
         }
-        input.addEventListener('blur', () => finish(true));
-        input.addEventListener('keydown', (ev) => {
-          if (ev.key === 'Enter') input.blur();
-          if (ev.key === 'Escape') { input.value = text; input.blur(); }
-        });
-      };
-
-      const delBtn = document.createElement('button');
-      delBtn.type = 'button';
-      delBtn.innerText = '🗑️';
-      delBtn.className = 'sun-preset-del';
-      delBtn.onclick = (e) => {
-        e.stopPropagation();
-        customs.splice(idx, 1);
-        saveSunData();
-        renderSunPanel();
-      };
-
-      item.appendChild(span);
-      item.appendChild(editBtn);
-      item.appendChild(delBtn);
+      });
       container.appendChild(item);
     });
+
+    // 自定义项
+    customs.forEach((text, idx) => {
+      const item = buildPresetItem(text, {
+        onClick: () => applyPreset(type, text),
+        onEdit: (newText) => {
+          if (!newText || newText === text) return;
+          customs[idx] = newText;
+          saveSunData();
+          renderSunPanel();
+        },
+        onDelete: () => {
+          customs.splice(idx, 1);
+          saveSunData();
+          renderSunPanel();
+        }
+      });
+      container.appendChild(item);
+    });
+  }
+
+  function buildPresetItem(text, handlers) {
+    const item = document.createElement('div');
+    item.className = 'sun-preset-item';
+
+    const span = document.createElement('span');
+    span.className = 'sun-preset-text';
+    span.innerText = text;
+    span.title = '点击添加 · 长按可编辑';
+
+    let longPressTimer = null;
+    let longPressed = false;
+    let isEditing = false;
+
+    function beginEdit() {
+      if (isEditing) return;
+      if (span.querySelector('input')) return;
+      isEditing = true;
+
+      const input = document.createElement('input');
+      input.className = 'sun-preset-edit-input';
+      input.type = 'text';
+      input.maxLength = 40;
+      input.value = text;
+
+      span.textContent = '';
+      span.appendChild(input);
+      input.focus();
+      input.select();
+
+      let done = false;
+      function finish(commit) {
+        if (done) return; done = true;
+        isEditing = false;
+        if (commit) {
+          const v = input.value.trim();
+          if (v) handlers.onEdit(v);
+        }
+      }
+      input.addEventListener('blur', () => finish(true));
+      input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') input.blur();
+        if (ev.key === 'Escape') { input.value = text; input.blur(); }
+      });
+    }
+
+    span.onclick = () => {
+      if (longPressed) { longPressed = false; return; }
+      if (isEditing) return;
+      handlers.onClick();
+    };
+
+    // 长按（触摸）
+    span.addEventListener('touchstart', () => {
+      longPressed = false;
+      clearTimeout(longPressTimer);
+      longPressTimer = setTimeout(() => {
+        longPressed = true;
+        beginEdit();
+      }, 550);
+    }, { passive: true });
+    span.addEventListener('touchend', () => clearTimeout(longPressTimer), { passive: true });
+    span.addEventListener('touchmove', () => clearTimeout(longPressTimer), { passive: true });
+
+    // 长按（鼠标，方便电脑上测试）
+    span.addEventListener('mousedown', () => {
+      longPressed = false;
+      clearTimeout(longPressTimer);
+      longPressTimer = setTimeout(() => {
+        longPressed = true;
+        beginEdit();
+      }, 550);
+    });
+    span.addEventListener('mouseup', () => clearTimeout(longPressTimer));
+    span.addEventListener('mouseleave', () => clearTimeout(longPressTimer));
+
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.innerText = '✏️';
+    editBtn.className = 'sun-preset-edit';
+    editBtn.onclick = (e) => { e.stopPropagation(); beginEdit(); };
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.innerText = '🗑️';
+    delBtn.className = 'sun-preset-del';
+    delBtn.onclick = (e) => { e.stopPropagation(); handlers.onDelete(); };
+
+    item.appendChild(span);
+    item.appendChild(editBtn);
+    item.appendChild(delBtn);
+    return item;
+  }
+
+  function applyPreset(type, text) {
+    if (type === 'happy') {
+      sunHappyNote = sunAppendWithAutoNumber(sunHappyNote, text);
+      const ta = document.getElementById('happyNote');
+      if (ta) ta.value = sunHappyNote;
+    } else {
+      sunSadNote = sunAppendWithAutoNumber(sunSadNote, text);
+      const ta = document.getElementById('sadNote');
+      if (ta) ta.value = sunSadNote;
+    }
+    saveSunData();
   }
 
   function renderSunPanel() {
@@ -3568,8 +3729,8 @@
     const sadTA = document.getElementById('sadNote');
     if (happyTA) happyTA.value = sunHappyNote;
     if (sadTA) sadTA.value = sunSadNote;
-    renderSunPresets('happyPresets', SUN_DEFAULT_HAPPY_PRESETS, sunCustomHappy, 'happy');
-    renderSunPresets('sadPresets', SUN_DEFAULT_SAD_PRESETS, sunCustomSad, 'sad');
+        renderSunPresets('happyPresets', SUN_DEFAULT_HAPPY_PRESETS, sunCustomHappy, sunHiddenHappy, 'happy');
+    renderSunPresets('sadPresets', SUN_DEFAULT_SAD_PRESETS, sunCustomSad, sunHiddenSad, 'sad');
     updateSunMoodUI();
   }
 
@@ -3651,7 +3812,8 @@
       resetHappyBtn.addEventListener('click', async () => {
         const ok = await confirmDialog('恢复默认小确幸预设？当前自定义预设将被清空。');
         if (!ok) return;
-        sunCustomHappy = [];
+                sunCustomHappy = [];
+        sunHiddenHappy = [];
         saveSunData();
         renderSunPanel();
         showToast('已重置默认预设');
@@ -3661,7 +3823,8 @@
       resetSadBtn.addEventListener('click', async () => {
         const ok = await confirmDialog('恢复默认下雨了预设？当前自定义预设将被清空。');
         if (!ok) return;
-        sunCustomSad = [];
+        sunCustomSad = []; 
+        sunHiddenSad = [];
         saveSunData();
         renderSunPanel();
         showToast('已重置默认预设');
