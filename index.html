@@ -1017,6 +1017,241 @@
     transform: translateX(-50%) translateY(0);
   }
 
+    /* =========================================================
+     种太阳面板
+     ========================================================= */
+  .sun-heart-line {
+    text-align: center;
+    font-size: 13px;
+    color: #6e9f7a;
+    margin: 0 0 12px;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .sun-heart-line::before,
+  .sun-heart-line::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #bdd6c0, transparent);
+  }
+  .sun-canvas-container {
+    position: relative;
+    width: 100%;
+    margin-bottom: 14px;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(45,58,52,0.08);
+    background: #f0f5ea;
+    border: 1px solid var(--line);
+  }
+  #moodCanvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: #f0f5ea;
+  }
+  .sun-control-bar {
+    position: absolute;
+    bottom: 10px;
+    left: 0; right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px;
+    pointer-events: none;
+  }
+  .sun-control-bar > * { pointer-events: auto; }
+  .sun-mood-badge {
+    background: rgba(255, 250, 235, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 60px;
+    padding: 3px 18px;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary-d);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    border: 1px solid rgba(140, 180, 120, 0.5);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+  .sun-slider-container { width: 100%; max-width: 240px; }
+  .sun-mood-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #b7cfb0, #dce8cf, #f2e5bc);
+    outline: none;
+    cursor: pointer;
+  }
+  .sun-mood-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    border: 2px solid var(--primary);
+    cursor: pointer;
+  }
+  .sun-action-buttons {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+  }
+  .sun-icon-btn {
+    background: rgba(255, 250, 235, 0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(140, 180, 120, 0.6);
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-d);
+    transition: 0.1s;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  }
+  .sun-icon-btn:active { transform: scale(0.94); }
+  .sun-notes-row { display: flex; flex-direction: column; gap: 12px; }
+  .sun-note-col {
+    background: rgba(254, 252, 232, 0.72);
+    border-radius: 20px;
+    padding: 14px;
+    border: 1px solid var(--line);
+  }
+  .sun-note-col h4 {
+    margin: 0 0 10px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--ink);
+  }
+  .sun-note-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--line-2);
+    border-radius: 12px;
+    font-size: 13px;
+    font-family: inherit;
+    background: #fff;
+    resize: vertical;
+    min-height: 70px;
+    color: var(--ink);
+    outline: none;
+  }
+  .sun-note-textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79,156,125,0.14);
+  }
+  .sun-note-toolbar {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+  .sun-btn {
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 9px;
+    color: var(--ink);
+    background: #fff;
+    border: 1px solid var(--line-2);
+    cursor: pointer;
+    transition: 0.15s;
+  }
+  .sun-btn:hover { background: #f4f9f6; border-color: #b8cec2; }
+  .sun-btn:active { transform: scale(0.98); }
+  .sun-presets-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 10px 0 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .sun-reset-preset-btn {
+    background: transparent;
+    border: none;
+    color: var(--primary);
+    font-size: 11px;
+    cursor: pointer;
+    padding: 2px 0;
+    text-decoration: underline dotted #8fb08a;
+    text-underline-offset: 3px;
+  }
+  .sun-note-presets { display: flex; flex-wrap: wrap; gap: 4px; }
+  .sun-preset-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: rgba(79, 156, 125, 0.08);
+    border: 1px solid rgba(79, 156, 125, 0.18);
+    border-radius: 30px;
+    padding: 3px 5px 3px 10px;
+  }
+  .sun-preset-text {
+    font-size: 12px;
+    cursor: pointer;
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--ink-2);
+  }
+  .sun-preset-edit, .sun-preset-del {
+    background: none;
+    border: none;
+    font-size: 11px;
+    cursor: pointer;
+    padding: 1px 3px;
+    border-radius: 20px;
+    opacity: 0.6;
+  }
+  .sun-preset-edit:hover, .sun-preset-del:hover { opacity: 1; background: rgba(0,0,0,0.06); }
+  .sun-custom-preset-area {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .sun-custom-preset-area input {
+    flex: 1;
+    min-width: 100px;
+    padding: 7px 12px;
+    border-radius: 30px;
+    border: 1px solid var(--line-2);
+    background: #fff;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--ink);
+    outline: none;
+  }
+  .sun-custom-preset-area input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79,156,125,0.14);
+  }
+  .sun-preset-edit-input {
+    font-family: inherit;
+    font-size: 12px;
+    padding: 2px 6px;
+    border: 1px solid var(--primary);
+    border-radius: 6px;
+    background: #fff;
+    outline: none;
+    max-width: 130px;
+    color: var(--ink);
+  }
   /* =========================================================
      小屏适配
      ========================================================= */
@@ -1048,10 +1283,11 @@
   </header>
 
   <!-- Tab 切换 -->
-  <nav class="tabs">
+    <nav class="tabs">
     <button data-tab="timer" class="active">计时器</button>
     <button data-tab="rec">录音</button>
     <button data-tab="todo">事项</button>
+    <button data-tab="sun">种太阳</button>
   </nav>
 
   <!-- ================= 计时器面板 ================= -->
@@ -1110,6 +1346,64 @@
     <div class="todos" id="todos"></div>
     <div class="empty" id="todoEmpty">
       今天还没有事项<br>在上方输入框添加吧
+    </div>
+  </section>
+  
+  <!-- ================= 种太阳面板 ================= -->
+  <section class="panel hidden" id="panel-sun">
+    <div class="sun-heart-line">你的每一份感受都值得被珍藏</div>
+
+    <div class="sun-canvas-container">
+      <canvas id="moodCanvas" width="560" height="420"></canvas>
+      <div class="sun-control-bar">
+        <div class="sun-mood-badge" id="moodValueDisplay">0</div>
+        <div class="sun-slider-container">
+          <input type="range" id="moodSlider" class="sun-mood-slider" min="-5" max="5" step="1" value="0">
+        </div>
+        <div class="sun-action-buttons">
+          <button id="moodMinusBtn" class="sun-icon-btn">−</button>
+          <button id="moodResetBtn" class="sun-icon-btn">↺</button>
+          <button id="moodPlusBtn" class="sun-icon-btn">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sun-notes-row">
+      <div class="sun-note-col">
+        <h4>🍀 小确幸 · 收集阳光</h4>
+        <textarea id="happyNote" class="sun-note-textarea" rows="4" placeholder="写点开心的事..."></textarea>
+        <div class="sun-note-toolbar">
+          <button class="sun-btn clearNoteBtn" data-target="happy">🗑️ 清空</button>
+        </div>
+        <div class="sun-presets-header">
+          <span>📌 快捷预设</span>
+          <button id="resetHappyPresetsBtn" class="sun-reset-preset-btn">↺ 恢复默认</button>
+        </div>
+        <div id="happyPresets" class="sun-note-presets"></div>
+        <div class="sun-custom-preset-area">
+          <input type="text" id="happyCustomInput" placeholder="自定义小确幸...">
+          <button id="addHappyToNoteBtn" class="sun-btn">➕ 添加</button>
+          <button id="addHappyPresetBtn" class="sun-btn">📌 添加预设</button>
+        </div>
+      </div>
+
+      <div class="sun-note-col">
+        <h4>🗑️ 垃圾桶 · 丢掉烦恼</h4>
+        <textarea id="sadNote" class="sun-note-textarea" rows="4" placeholder="写点不开心的事..."></textarea>
+        <div class="sun-note-toolbar">
+          <button class="sun-btn clearNoteBtn" data-target="sad">🗑️ 清空</button>
+        </div>
+        <div class="sun-presets-header">
+          <span>📌 快捷预设</span>
+          <button id="resetSadPresetsBtn" class="sun-reset-preset-btn">↺ 恢复默认</button>
+        </div>
+        <div id="sadPresets" class="sun-note-presets"></div>
+        <div class="sun-custom-preset-area">
+          <input type="text" id="sadCustomInput" placeholder="自定义下雨事...">
+          <button id="addSadToNoteBtn" class="sun-btn">➕ 添加</button>
+          <button id="addSadPresetBtn" class="sun-btn">📌 添加预设</button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -2498,7 +2792,681 @@
   loadTodoData();
   renderTodos();
 
-  window.addEventListener('beforeunload', () => { saveTimers(); saveTodoData(); });
+    /* =========================================================
+     种太阳 · 数据与逻辑
+     ========================================================= */
+  const SUN_KEY_MOOD = 'my-sun-mood';
+  const SUN_KEY_HAPPY = 'my-sun-happy-note';
+  const SUN_KEY_SAD = 'my-sun-sad-note';
+  const SUN_KEY_CUSTOM_HAPPY = 'my-sun-custom-happy';
+  const SUN_KEY_CUSTOM_SAD = 'my-sun-custom-sad';
+
+  const SUN_DEFAULT_HAPPY_PRESETS = [
+    "喝到一杯好咖啡/茶", "收到朋友温暖的消息", "运动/流汗后很爽", "吃到喜欢的食物",
+    "完成了一件拖延很久的事", "听到一首好听的歌", "看到美丽的风景", "被人夸奖或感谢",
+    "学习/工作有了一点进步", "撸到了猫/狗", "睡了个好觉/午休很舒服", "不告诉你嘻嘻"
+  ];
+  const SUN_DEFAULT_SAD_PRESETS = [
+    "睡眠不足 / 没睡好", "工作/学习压力大", "跟人闹别扭 / 被误解", "身体不舒服",
+    "天气闷热/下雨影响心情", "计划被打乱 / 事情没做完", "对自己不满意 / 拖延了",
+    "感到孤独 / 没人理解", "被拒绝 / 被批评", "莫名其妙的低落", "不说了"
+  ];
+
+  let sunMood = 0;
+  let sunHappyNote = '';
+  let sunSadNote = '';
+  let sunCustomHappy = [];
+  let sunCustomSad = [];
+
+  function loadSunData() {
+    try {
+      const m = localStorage.getItem(SUN_KEY_MOOD);
+      sunMood = m !== null ? parseInt(m) || 0 : 0;
+      sunHappyNote = localStorage.getItem(SUN_KEY_HAPPY) || '';
+      sunSadNote = localStorage.getItem(SUN_KEY_SAD) || '';
+      const ch = localStorage.getItem(SUN_KEY_CUSTOM_HAPPY);
+      sunCustomHappy = ch ? JSON.parse(ch) : [];
+      if (!Array.isArray(sunCustomHappy)) sunCustomHappy = [];
+      const cs = localStorage.getItem(SUN_KEY_CUSTOM_SAD);
+      sunCustomSad = cs ? JSON.parse(cs) : [];
+      if (!Array.isArray(sunCustomSad)) sunCustomSad = [];
+    } catch (e) {}
+  }
+
+  function saveSunData() {
+    try {
+      localStorage.setItem(SUN_KEY_MOOD, String(sunMood));
+      localStorage.setItem(SUN_KEY_HAPPY, sunHappyNote);
+      localStorage.setItem(SUN_KEY_SAD, sunSadNote);
+      localStorage.setItem(SUN_KEY_CUSTOM_HAPPY, JSON.stringify(sunCustomHappy));
+      localStorage.setItem(SUN_KEY_CUSTOM_SAD, JSON.stringify(sunCustomSad));
+    } catch (e) {}
+  }
+
+  function sunAppendWithAutoNumber(currentText, newContent) {
+    if (!newContent.trim()) return currentText;
+    const lines = currentText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+    let maxNum = 0;
+    for (const line of lines) {
+      const m = line.match(/^\s*(\d+)\./);
+      if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
+    }
+    const newLine = (maxNum + 1) + '. ' + newContent;
+    if (currentText.trim() === '') return newLine;
+    return currentText + (currentText.endsWith('\n') ? '' : '\n') + newLine;
+  }
+
+  /* ---------- 画布绘制 ---------- */
+  function sunJitter(amount = 0.8) { return (Math.random() - 0.5) * amount; }
+
+  function drawMoodCanvas(mood) {
+    const canvas = document.getElementById('moodCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const width = 560, height = 420;
+    canvas.width = width;
+    canvas.height = height;
+
+    function getDiagonalGradient(m) {
+      const lb = "#D8E8D0";
+      let rt;
+      if (m >= 4) rt = "#FFF5E0";
+      else if (m === 3) rt = "#FFF2DA";
+      else if (m === 2) rt = "#FFEFD4";
+      else if (m === 1) rt = "#FEF0D0";
+      else if (m === 0) rt = "#F0EFE0";
+      else if (m === -1) rt = "#E0E6D8";
+      else if (m === -2) rt = "#D4DECE";
+      else if (m === -3) rt = "#C8D4C4";
+      else if (m === -4) rt = "#BCC8B8";
+      else rt = "#B0C0AC";
+      const g = ctx.createLinearGradient(0, height, width, 0);
+      g.addColorStop(0, lb);
+      g.addColorStop(1, rt);
+      return g;
+    }
+    ctx.fillStyle = getDiagonalGradient(mood);
+    ctx.fillRect(0, 0, width, height);
+
+    if (mood > 0) ctx.fillStyle = 'rgba(230,200,120,' + Math.min(0.08, mood * 0.015) + ')';
+    else if (mood < 0) ctx.fillStyle = 'rgba(100,110,120,' + Math.min(0.08, Math.abs(mood) * 0.016) + ')';
+    else ctx.fillStyle = 'rgba(210,230,200,0.04)';
+    ctx.fillRect(0, 0, width, height);
+
+    for (let i = 0; i < 70; i++) {
+      ctx.beginPath();
+      ctx.arc(Math.random() * width, Math.random() * height, Math.random() * 1.2, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(80,70,40,0.03)';
+      ctx.fill();
+    }
+
+    const SUN_BASE_X = 340, SUN_BASE_Y = 140;
+    const raysCount = mood > 0 ? Math.min(5, mood) : 0;
+    const radius = 32 + (mood > 0 ? Math.min(12, mood * 2.4) : 0);
+    const yOffset = mood >= 0 ? -Math.min(38, mood * 7.6) : Math.min(5, Math.abs(mood) * 1);
+    let sunColor;
+    if (mood >= 4) sunColor = "#FFD56E";
+    else if (mood >= 2) sunColor = "#FDBF4C";
+    else if (mood === 1) sunColor = "#F5AD3A";
+    else if (mood === 0) sunColor = "#E0A244";
+    else sunColor = 'rgba(170,100,45,' + (0.5 + mood * 0.05) + ')';
+    let glowAlpha;
+    if (mood >= 3) glowAlpha = 0.55;
+    else if (mood === 2) glowAlpha = 0.45;
+    else if (mood === 1) glowAlpha = 0.35;
+    else if (mood === 0) glowAlpha = 0.2;
+    else if (mood === -1) glowAlpha = 0.12;
+    else glowAlpha = 0;
+
+    function drawDoodleRay(cx, cy, innerR, angle, rayLen, color, alpha) {
+      const tipX = cx + (innerR + rayLen) * Math.cos(angle);
+      const tipY = cy + (innerR + rayLen) * Math.sin(angle);
+      const spread = 0.38;
+      const leftA = angle - spread, rightA = angle + spread;
+      const baseLX = cx + innerR * Math.cos(leftA), baseLY = cy + innerR * Math.sin(leftA);
+      const baseRX = cx + innerR * Math.cos(rightA), baseRY = cy + innerR * Math.sin(rightA);
+      ctx.beginPath();
+      ctx.moveTo(baseLX + sunJitter(1), baseLY + sunJitter(1));
+      const ctrlX = cx + (innerR + rayLen * 0.65) * Math.cos(angle) + sunJitter(2);
+      const ctrlY = cy + (innerR + rayLen * 0.65) * Math.sin(angle) + sunJitter(2);
+      ctx.quadraticCurveTo(ctrlX, ctrlY, tipX + sunJitter(1.5), tipY + sunJitter(1.5));
+      ctx.lineTo(baseRX + sunJitter(1), baseRY + sunJitter(1));
+      ctx.quadraticCurveTo(ctrlX, ctrlY, tipX + sunJitter(1.5), tipY + sunJitter(1.5));
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.globalAlpha = alpha;
+      ctx.fill();
+    }
+
+    function drawSunRays(cx, cy, innerR, cnt, rayColor, alpha, baseLen) {
+      if (cnt <= 0) return;
+      const startAngle = -Math.PI / 2, step = Math.PI * 2 / 5;
+      for (let i = 0; i < cnt; i++) {
+        const angle = startAngle + i * step;
+        let extra = 0;
+        if (cnt === 5) extra = 14; else if (cnt === 4) extra = 10;
+        else if (cnt === 3) extra = 6; else if (cnt === 2) extra = 2;
+        drawDoodleRay(cx, cy, innerR, angle, baseLen + extra, rayColor, alpha);
+      }
+    }
+
+    const sunX = SUN_BASE_X, sunY = SUN_BASE_Y + yOffset;
+
+    if (glowAlpha > 0) {
+      ctx.save();
+      ctx.globalAlpha = glowAlpha * 0.55;
+      for (let i = 0; i < 2; i++) {
+        ctx.beginPath();
+        ctx.arc(sunX + sunJitter(2), sunY + sunJitter(2), radius + 12 + sunJitter(3), 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,210,110,0.2)';
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const ang = (i / 10) * Math.PI * 2;
+      const rad = radius + sunJitter(1.5);
+      const x = sunX + rad * Math.cos(ang), y = sunY + rad * Math.sin(ang);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    const diskGrad = ctx.createRadialGradient(sunX - 4, sunY - 4, 4, sunX, sunY, radius);
+    diskGrad.addColorStop(0, '#FFF2C4');
+    diskGrad.addColorStop(0.7, sunColor);
+    diskGrad.addColorStop(1, '#C47A2E');
+    ctx.fillStyle = diskGrad;
+    ctx.fill();
+    if (mood !== 0) {
+      ctx.beginPath();
+      ctx.arc(sunX - 5 + sunJitter(1), sunY - 5 + sunJitter(1), radius * 0.2, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFFBE6';
+      ctx.fill();
+    }
+    ctx.restore();
+
+    if (raysCount > 0 && mood > 0) {
+      let rayColor = "#FFD96E";
+      if (mood >= 4) rayColor = "#FFEC9E";
+      else if (mood === 3) rayColor = "#FFDE7A";
+      const rayAlpha = Math.min(0.82, 0.58 + mood * 0.045);
+      drawSunRays(sunX, sunY, radius - 4, raysCount, rayColor, rayAlpha, 30);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      drawSunRays(sunX, sunY, radius - 2, raysCount, "#FFF2B0", 0.22, 34);
+      ctx.restore();
+    }
+
+    if (mood === 0) {
+      ctx.save();
+      ctx.globalAlpha = 0.32;
+      ctx.beginPath();
+      ctx.arc(sunX + sunJitter(1), sunY + sunJitter(1), radius - 5, 0, Math.PI * 2);
+      ctx.fillStyle = "#DDA04A";
+      ctx.fill();
+      ctx.restore();
+    }
+    if (mood < 0 && mood >= -2) {
+      ctx.save(); ctx.globalAlpha = 0.22;
+      ctx.beginPath();
+      ctx.arc(sunX + sunJitter(2), sunY + sunJitter(2), radius - 7, 0, Math.PI * 2);
+      ctx.fillStyle = "#A75F2C"; ctx.fill();
+      ctx.restore();
+    } else if (mood <= -3) {
+      ctx.save(); ctx.globalAlpha = 0.09;
+      ctx.beginPath();
+      ctx.arc(sunX + sunJitter(3), sunY + sunJitter(3), radius - 9, 0, Math.PI * 2);
+      ctx.fillStyle = "#6B3E1A"; ctx.fill();
+      ctx.restore();
+    }
+
+    function getCloudStyle(lvl) {
+      let color, opacity, extra = false;
+      if (lvl >= 5) { color = "#FFFFFF"; opacity = 0.18; }
+      else if (lvl === 4) { color = "#FFFFFF"; opacity = 0.24; }
+      else if (lvl === 3) { color = "#FFFFFF"; opacity = 0.34; }
+      else if (lvl === 2) { color = "#FFFFFF"; opacity = 0.48; }
+      else if (lvl === 1) { color = "#FFFFFF"; opacity = 0.62; }
+      else if (lvl === 0) { color = "#F5F6FA"; opacity = 0.88; extra = true; }
+      else if (lvl === -1) { color = "#B0B6C0"; opacity = 0.94; extra = true; }
+      else if (lvl === -2) { color = "#9098A5"; opacity = 0.96; extra = true; }
+      else if (lvl === -3) { color = "#707885"; opacity = 0.98; extra = true; }
+      else { color = "#505866"; opacity = 0.99; extra = true; }
+      return { color, opacity, extra };
+    }
+
+    function getCloudDrift(lvl) {
+      if (lvl <= 0) return { dx: 0, dy: 0 };
+      return { dx: -Math.min(42, lvl * 2.5), dy: Math.min(24, lvl * 2.0) };
+    }
+
+    function drawDoodleCloud(x, y, w, h, color, opacity, isHeavy) {
+      ctx.save();
+      ctx.globalAlpha = opacity;
+      ctx.fillStyle = color;
+      const parts = isHeavy ? 4 : 2;
+      for (let i = 0; i < parts; i++) {
+        const offX = (Math.random() - 0.5) * w * 0.35;
+        const offY = (Math.random() - 0.5) * h * 0.2;
+        const radX = w * (0.45 + Math.random() * 0.3);
+        const radY = h * (0.5 + Math.random() * 0.3);
+        ctx.beginPath();
+        ctx.ellipse(x + offX, y + offY, radX, radY, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.arc(x + (Math.random() - 0.5) * w, y + (Math.random() - 0.5) * h, 1 + Math.random() * 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    const drift = getCloudDrift(mood);
+    let dx = drift.dx, dy = drift.dy;
+    if (mood < 0) { dx = Math.min(12, Math.abs(mood) * 1.2); dy = -Math.min(10, Math.abs(mood) * 1); }
+    const style = getCloudStyle(mood);
+    let cloudSpots = [];
+    if (mood >= 5) cloudSpots = [{x:310,y:125,w:42,h:36},{x:370,y:115,w:44,h:38}];
+    else if (mood === 4) cloudSpots = [{x:300,y:110,w:48,h:42},{x:360,y:100,w:50,h:44},{x:330,y:140,w:46,h:40}];
+    else cloudSpots = [
+      {x:300,y:110,w:56,h:48},{x:350,y:90,w:62,h:52},{x:400,y:105,w:58,h:50},
+      {x:370,y:135,w:54,h:46},{x:330,y:140,w:52,h:44},{x:420,y:75,w:50,h:42},
+      {x:270,y:125,w:52,h:46},{x:310,y:150,w:56,h:48}
+    ];
+    if (mood > 0 && mood < 5) cloudSpots.push({x:340,y:170,w:48,h:42},{x:380,y:165,w:46,h:40});
+    else if (mood >= 5) cloudSpots.push({x:345,y:168,w:42,h:38});
+    for (const s of cloudSpots) drawDoodleCloud(s.x + dx, s.y + dy, s.w, s.h, style.color, style.opacity, false);
+
+    if ((style.extra || mood === 0) && mood < 5) {
+      const extraSpots = [{x:320,y:170,w:62,h:56},{x:380,y:185,w:66,h:60},{x:430,y:160,w:58,h:52}];
+      for (const s of extraSpots) drawDoodleCloud(s.x + dx * 0.8, s.y + dy * 0.9, s.w, s.h, style.color, style.opacity * 0.95, true);
+    }
+
+    if (mood <= -2) {
+      ctx.save();
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = 'rgba(75,75,95,0.7)';
+      ctx.beginPath(); ctx.ellipse(350 + dx*0.5, 145 + dy*0.6, 72, 66, 0, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(400 + dx*0.5, 120 + dy*0.6, 68, 60, 0, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+    if (mood <= -4) {
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = 'rgba(55,55,75,0.85)';
+      ctx.beginPath(); ctx.ellipse(370 + dx*0.3, 160 + dy*0.5, 80, 72, 0, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    let rainP = null;
+    if (mood === -2) rainP = { cnt:22, lw:2.4, op:0.62, len:[6,12] };
+    else if (mood === -3) rainP = { cnt:30, lw:3.0, op:0.78, len:[8,16] };
+    else if (mood === -4) rainP = { cnt:38, lw:3.5, op:0.86, len:[10,19] };
+    else if (mood === -5) rainP = { cnt:48, lw:4.2, op:0.94, len:[12,22] };
+
+    if (rainP) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.lineCap = 'round';
+      for (let i = 0; i < rainP.cnt; i++) {
+        const x = 80 + Math.random() * (width - 160);
+        const y = 60 + Math.random() * (height - 100);
+        const len = rainP.len[0] + Math.random() * (rainP.len[1] - rainP.len[0]);
+        const angle = -0.3 + Math.random() * 0.6;
+        const endX = x + Math.sin(angle) * len + sunJitter(2);
+        const endY = y + Math.cos(angle) * len + sunJitter(2);
+        ctx.beginPath();
+        ctx.moveTo(x + sunJitter(1), y + sunJitter(1));
+        ctx.lineTo(endX, endY);
+        ctx.lineWidth = rainP.lw + (Math.random() - 0.5);
+        ctx.strokeStyle = 'rgba(150,195,225,' + (rainP.op * (0.7 + Math.random() * 0.3)) + ')';
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(endX - 2, endY + 2, 1.5 + Math.random() * 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(170,210,235,0.7)';
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawZap(x, y, height2, color) {
+      ctx.save();
+      ctx.shadowBlur = 6;
+      ctx.shadowColor = '#FFD98C';
+      ctx.beginPath();
+      const pts = [
+        [x + sunJitter(2), y + sunJitter(2)],
+        [x - 11 + sunJitter(3), y + height2 * 0.38 + sunJitter(3)],
+        [x + 9 + sunJitter(3), y + height2 * 0.34 + sunJitter(3)],
+        [x - 5 + sunJitter(3), y + height2 * 0.72 + sunJitter(3)],
+        [x + 16 + sunJitter(3), y + height2 * 0.68 + sunJitter(3)],
+        [x + 4 + sunJitter(2), y + height2 + sunJitter(2)]
+      ];
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.restore();
+    }
+    if (mood === -4) drawZap(340, 125, 50, '#E9EE8C');
+    else if (mood === -5) { drawZap(310, 95, 70, '#FFEF8F'); drawZap(400, 110, 64, '#FFE674'); }
+
+    if (mood > 0) {
+      ctx.save();
+      ctx.globalAlpha = 0.7 + mood * 0.04;
+      for (let i = 0; i < 18 + mood * 2; i++) {
+        const bx = 20 + Math.random() * 180;
+        const by = height - 20 - Math.random() * 45;
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.quadraticCurveTo(bx + 8 + sunJitter(6), by - 12 + sunJitter(6), bx + 16 + sunJitter(8), by - 4 + sunJitter(4));
+        ctx.strokeStyle = 'rgba(80,130,70,0.6)';
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(bx + 3, by - 2);
+        ctx.quadraticCurveTo(bx + 12, by - 18, bx + 20, by - 8);
+        ctx.stroke();
+      }
+      for (let i = 0; i < 12 + Math.floor(mood * 1.5); i++) {
+        const fx = 15 + Math.random() * 200;
+        const fy = height - 30 - Math.random() * 55;
+        ctx.beginPath();
+        ctx.arc(fx, fy, 2 + Math.random() * 2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(250,200,120,0.8)';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(fx - 1, fy - 1, 1, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,160,80,0.9)';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(fx, fy);
+        ctx.lineTo(fx + 2 + sunJitter(3), fy + 6 + sunJitter(3));
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(70,120,60,0.6)';
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 18 + mood * 3; i++) {
+        const x = Math.random() * width, y = Math.random() * (height * 0.7);
+        ctx.beginPath();
+        ctx.arc(x, y, 1 + Math.random() * 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,230,140,' + (0.3 + Math.random() * 0.5) + ')';
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    let sparkleCount = 12;
+    if (mood >= 3) sparkleCount = 16;
+    else if (mood <= -3) sparkleCount = 6;
+    else if (mood === 0) sparkleCount = 8;
+    for (let i = 0; i < sparkleCount; i++) {
+      ctx.beginPath();
+      ctx.arc(Math.random() * width, Math.random() * height, 1.2 + Math.random() * 1.4, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,250,210,' + (0.15 + Math.random() * 0.35) + ')';
+      ctx.fill();
+    }
+    if (mood >= -1 && mood <= 1) {
+      ctx.save();
+      ctx.globalAlpha = 0.2;
+      for (let i = 0; i < 4; i++) {
+        const sx = 120 + i * 100;
+        const sy = 80 + Math.sin(Date.now() * 0.002 + i) * 4;
+        ctx.beginPath();
+        ctx.moveTo(sx + sunJitter(1), sy + sunJitter(1));
+        ctx.quadraticCurveTo(sx + 28 + sunJitter(4), sy - 6 + sunJitter(2), sx + 58 + sunJitter(3), sy - 2 + sunJitter(2));
+        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = '#C0D8C0';
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+
+  function updateSunMoodUI() {
+    const slider = document.getElementById('moodSlider');
+    const badge = document.getElementById('moodValueDisplay');
+    if (slider) slider.value = sunMood;
+    if (badge) badge.innerText = sunMood;
+    drawMoodCanvas(sunMood);
+    if (slider) {
+      let grad = '';
+      if (sunMood <= -3) grad = 'linear-gradient(90deg, #b7cfb0, #c8dbc8, #dde6d4)';
+      else if (sunMood <= -1) grad = 'linear-gradient(90deg, #c8dbc8, #dee8d6, #edf0e0)';
+      else if (sunMood === 0) grad = 'linear-gradient(90deg, #e2eace, #ecf0de, #f5eac8)';
+      else if (sunMood <= 2) grad = 'linear-gradient(90deg, #d6e8e2, #e2f0ea, #eef5f0)';
+      else grad = 'linear-gradient(90deg, #cde5df, #d9ede7, #e5f5ef)';
+      slider.style.background = grad;
+    }
+  }
+
+  function setSunMood(val) {
+    val = Math.min(5, Math.max(-5, val));
+    sunMood = val;
+    saveSunData();
+    updateSunMoodUI();
+  }
+
+  function renderSunPresets(containerId, defaults, customs, type) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+
+    defaults.forEach((text) => {
+      const item = document.createElement('div');
+      item.className = 'sun-preset-item';
+      const span = document.createElement('span');
+      span.className = 'sun-preset-text';
+      span.innerText = text;
+      span.title = text;
+      span.onclick = () => {
+        if (type === 'happy') {
+          sunHappyNote = sunAppendWithAutoNumber(sunHappyNote, text);
+          const ta = document.getElementById('happyNote');
+          if (ta) ta.value = sunHappyNote;
+        } else {
+          sunSadNote = sunAppendWithAutoNumber(sunSadNote, text);
+          const ta = document.getElementById('sadNote');
+          if (ta) ta.value = sunSadNote;
+        }
+        saveSunData();
+      };
+      item.appendChild(span);
+      container.appendChild(item);
+    });
+
+    customs.forEach((text, idx) => {
+      const item = document.createElement('div');
+      item.className = 'sun-preset-item';
+      const span = document.createElement('span');
+      span.className = 'sun-preset-text';
+      span.innerText = text;
+      span.title = text;
+      span.onclick = () => {
+        if (type === 'happy') {
+          sunHappyNote = sunAppendWithAutoNumber(sunHappyNote, text);
+          const ta = document.getElementById('happyNote');
+          if (ta) ta.value = sunHappyNote;
+        } else {
+          sunSadNote = sunAppendWithAutoNumber(sunSadNote, text);
+          const ta = document.getElementById('sadNote');
+          if (ta) ta.value = sunSadNote;
+        }
+        saveSunData();
+      };
+
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.innerText = '✏️';
+      editBtn.className = 'sun-preset-edit';
+      editBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (span.querySelector('input')) return;
+        const input = document.createElement('input');
+        input.className = 'sun-preset-edit-input';
+        input.type = 'text';
+        input.maxLength = 40;
+        input.value = text;
+        span.textContent = '';
+        span.appendChild(input);
+        input.focus();
+        input.select();
+        let done = false;
+        function finish(commit) {
+          if (done) return; done = true;
+          if (commit) {
+            const v = input.value.trim();
+            if (v && v !== text) {
+              customs[idx] = v;
+              saveSunData();
+            }
+          }
+          renderSunPanel();
+        }
+        input.addEventListener('blur', () => finish(true));
+        input.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter') input.blur();
+          if (ev.key === 'Escape') { input.value = text; input.blur(); }
+        });
+      };
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.innerText = '🗑️';
+      delBtn.className = 'sun-preset-del';
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        customs.splice(idx, 1);
+        saveSunData();
+        renderSunPanel();
+      };
+
+      item.appendChild(span);
+      item.appendChild(editBtn);
+      item.appendChild(delBtn);
+      container.appendChild(item);
+    });
+  }
+
+  function renderSunPanel() {
+    const happyTA = document.getElementById('happyNote');
+    const sadTA = document.getElementById('sadNote');
+    if (happyTA) happyTA.value = sunHappyNote;
+    if (sadTA) sadTA.value = sunSadNote;
+    renderSunPresets('happyPresets', SUN_DEFAULT_HAPPY_PRESETS, sunCustomHappy, 'happy');
+    renderSunPresets('sadPresets', SUN_DEFAULT_SAD_PRESETS, sunCustomSad, 'sad');
+    updateSunMoodUI();
+  }
+
+  function initSunControls() {
+    const slider = document.getElementById('moodSlider');
+    const minusBtn = document.getElementById('moodMinusBtn');
+    const plusBtn = document.getElementById('moodPlusBtn');
+    const resetBtn = document.getElementById('moodResetBtn');
+
+    if (slider) slider.addEventListener('input', (e) => setSunMood(parseInt(e.target.value, 10)));
+    if (minusBtn) minusBtn.addEventListener('click', () => setSunMood(sunMood - 1));
+    if (plusBtn) plusBtn.addEventListener('click', () => setSunMood(sunMood + 1));
+    if (resetBtn) resetBtn.addEventListener('click', () => setSunMood(0));
+
+    const happyTA = document.getElementById('happyNote');
+    const sadTA = document.getElementById('sadNote');
+    if (happyTA) happyTA.addEventListener('input', (e) => { sunHappyNote = e.target.value; saveSunData(); });
+    if (sadTA) sadTA.addEventListener('input', (e) => { sunSadNote = e.target.value; saveSunData(); });
+
+    document.querySelectorAll('.clearNoteBtn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.target;
+        if (target === 'happy') {
+          sunHappyNote = '';
+          if (happyTA) happyTA.value = '';
+          saveSunData();
+          showToast('已清空小确幸');
+        } else if (target === 'sad') {
+          sunSadNote = '';
+          if (sadTA) sadTA.value = '';
+          saveSunData();
+          showToast('已清空垃圾桶');
+        }
+      });
+    });
+
+    const addToNote = (type, inputId) => {
+      const inp = document.getElementById(inputId);
+      if (!inp) return;
+      const text = inp.value.trim();
+      if (!text) { showToast('请输入内容'); return; }
+      if (type === 'happy') {
+        sunHappyNote = sunAppendWithAutoNumber(sunHappyNote, text);
+        if (happyTA) happyTA.value = sunHappyNote;
+      } else {
+        sunSadNote = sunAppendWithAutoNumber(sunSadNote, text);
+        if (sadTA) sadTA.value = sunSadNote;
+      }
+      saveSunData();
+      inp.value = '';
+      showToast('已添加');
+    };
+
+    const addPreset = (type, inputId, customArr) => {
+      const inp = document.getElementById(inputId);
+      if (!inp) return;
+      const text = inp.value.trim();
+      if (!text) { showToast('请输入预设内容'); return; }
+      if (customArr.includes(text)) { showToast('预设已存在'); return; }
+      customArr.push(text);
+      saveSunData();
+      renderSunPanel();
+      inp.value = '';
+      showToast('预设已添加');
+    };
+
+    const addHappyToNoteBtn = document.getElementById('addHappyToNoteBtn');
+    const addSadToNoteBtn = document.getElementById('addSadToNoteBtn');
+    const addHappyPresetBtn = document.getElementById('addHappyPresetBtn');
+    const addSadPresetBtn = document.getElementById('addSadPresetBtn');
+    if (addHappyToNoteBtn) addHappyToNoteBtn.addEventListener('click', () => addToNote('happy', 'happyCustomInput'));
+    if (addSadToNoteBtn) addSadToNoteBtn.addEventListener('click', () => addToNote('sad', 'sadCustomInput'));
+    if (addHappyPresetBtn) addHappyPresetBtn.addEventListener('click', () => addPreset('happy', 'happyCustomInput', sunCustomHappy));
+    if (addSadPresetBtn) addSadPresetBtn.addEventListener('click', () => addPreset('sad', 'sadCustomInput', sunCustomSad));
+
+    const resetHappyBtn = document.getElementById('resetHappyPresetsBtn');
+    const resetSadBtn = document.getElementById('resetSadPresetsBtn');
+    if (resetHappyBtn) {
+      resetHappyBtn.addEventListener('click', async () => {
+        const ok = await confirmDialog('恢复默认小确幸预设？当前自定义预设将被清空。');
+        if (!ok) return;
+        sunCustomHappy = [];
+        saveSunData();
+        renderSunPanel();
+        showToast('已重置默认预设');
+      });
+    }
+    if (resetSadBtn) {
+      resetSadBtn.addEventListener('click', async () => {
+        const ok = await confirmDialog('恢复默认下雨了预设？当前自定义预设将被清空。');
+        if (!ok) return;
+        sunCustomSad = [];
+        saveSunData();
+        renderSunPanel();
+        showToast('已重置默认预设');
+      });
+    }
+  }
+
+    /* 种太阳初始化 */
+  loadSunData();
+  initSunControls();
+  renderSunPanel();
+
+  window.addEventListener('beforeunload', () => { saveTimers(); saveTodoData(); saveSunData(); });
 
 })();
 </script>
