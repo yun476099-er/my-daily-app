@@ -241,7 +241,7 @@
                  'Hiragino Sans GB', system-ui, sans-serif;
     padding: 4px 8px;
     user-select: none;
-    text-align: left;
+        text-align: center;
     width: max-content;
     max-width: 86vw;
   }
@@ -265,7 +265,7 @@
     letter-spacing: 0;
     line-height: 1.1;
     margin-top: 6px;
-    margin-left: 10px;
+    margin-left: 0;
     color: rgba(79, 156, 125, 0.14);
     -webkit-text-stroke: 1px rgba(63, 130, 102, 0.36);
     paint-order: stroke fill;
@@ -1464,8 +1464,8 @@
 
     <div class="sun-notes-row">
       <div class="sun-note-col">
-        <h4>🍀 小确幸 · 收集阳光</h4>
-        <textarea id="happyNote" class="sun-note-textarea" rows="4" placeholder="写点开心的事..."></textarea>
+        <h4>🍀 小确幸</h4>
+        <textarea id="happyNote" class="sun-note-textarea" rows="4" placeholder="开心的事..."></textarea>
         <div class="sun-note-toolbar">
           <button class="sun-btn clearNoteBtn" data-target="happy">🗑️ 清空</button>
         </div>
@@ -1482,8 +1482,8 @@
       </div>
 
       <div class="sun-note-col">
-        <h4>🗑️ 垃圾桶 · 丢掉烦恼</h4>
-        <textarea id="sadNote" class="sun-note-textarea" rows="4" placeholder="写点不开心的事..."></textarea>
+        <h4>🗑️ 垃圾桶</h4>
+        <textarea id="sadNote" class="sun-note-textarea" rows="4" placeholder="不开心的事..."></textarea>
         <div class="sun-note-toolbar">
           <button class="sun-btn clearNoteBtn" data-target="sad">🗑️ 清空</button>
         </div>
@@ -2698,13 +2698,17 @@
   const watermarkDone  = $('#watermarkDone');
   const todoDayline    = document.querySelector('.todo-dayline');
 
-  function updateWatermark() {
+    function updateWatermark() {
     const dayVal = getDayVal();
     watermarkDay.textContent = 'Day ' + (dayVal || '—');
 
-    const list = todayTodos();
-    const doneCount = list.filter((t) => t.done).length;
-    watermarkDone.textContent = '完成 ' + doneCount + ' / ' + list.length;
+    // 读取「心情记」当前的心情值（-5 ~ +5）
+    let moodVal = 0;
+    try {
+      moodVal = (typeof sunMood === 'number') ? sunMood : 0;
+    } catch (e) { moodVal = 0; }
+
+    watermarkDone.textContent = '心情 ' + moodVal + ' 分';
   }
 
   function toggleWatermark() {
@@ -2725,9 +2729,8 @@
     toggleWatermark();
   });
 
-  // 初次加载时填入今天的值，并初始化水印
+    // 初次加载时填入今天的值（水印延后到心情记初始化后统一刷新）
   todoDayInput.value = getDayVal();
-  updateWatermark();
 
     function renderTodos() {
     const list = todayTodos();
@@ -3558,8 +3561,10 @@
       else if (sunMood === 0) grad = 'linear-gradient(90deg, #e2eace, #ecf0de, #f5eac8)';
       else if (sunMood <= 2) grad = 'linear-gradient(90deg, #d6e8e2, #e2f0ea, #eef5f0)';
       else grad = 'linear-gradient(90deg, #cde5df, #d9ede7, #e5f5ef)';
-      slider.style.background = grad;
+            slider.style.background = grad;
     }
+    // 心情变化时同步刷新背景水印
+    updateWatermark();
   }
 
   function setSunMood(val) {
@@ -3843,12 +3848,15 @@
     }
   }
 
-      /* 种太阳初始化 */
+        /* 种太阳初始化 */
   loadSunData();
   loadSunHistory();
   initSunControls();
   renderSunPanel();
   renderSunHistory();
+
+  // 心情数据加载完后，刷一次水印
+  updateWatermark();
 
   window.addEventListener('beforeunload', () => { saveTimers(); saveTodoData(); saveSunData(); });
 
