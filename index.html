@@ -259,16 +259,17 @@
   }
 
   /* 完成比例：错位摆放，字距拉大，与 Day 形成不对称感 */
-                    .watermark-done{
-    font-size: clamp(28px, 7vw, 52px);
-    font-weight: 600;
-    font-family: 'Songti SC', 'STSong', 'SimSun', Georgia, 'Times New Roman', serif;
-    letter-spacing: 2px;
+    .watermark-done{
+    font-size: clamp(30px, 7.5vw, 56px);
+    font-weight: 500;
+    font-family: 'Kaiti SC', 'STKaiti', 'KaiTi', 'Songti SC', 'STSong', Georgia, serif;
+    font-style: italic;
+    letter-spacing: 1px;
     line-height: 1.15;
     margin-top: 20px;
     margin-left: 0;
-    color: rgba(224, 162, 68, 0.18);
-    -webkit-text-stroke: 1px rgba(196, 122, 46, 0.4);
+    color: rgba(224, 162, 68, 0.2);
+    -webkit-text-stroke: 0.8px rgba(196, 122, 46, 0.32);
     paint-order: stroke fill;
     white-space: nowrap;
   }
@@ -400,6 +401,62 @@
     padding: 6px 0;
     font-size: 12px;
     border-radius: 8px;
+  }
+    /* =========================================================
+     计时历史
+     ========================================================= */
+  .timer-history-section {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--line-2);
+  }
+  .timer-history-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .timer-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .timer-history-item {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 14px;
+    box-shadow: var(--shadow-sm);
+  }
+  .timer-history-date {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary-d);
+    margin-bottom: 4px;
+  }
+  .timer-history-scores {
+    font-size: 12px;
+    color: var(--ink-2);
+    line-height: 1.7;
+    word-break: break-word;
+  }
+  .timer-history-scores .th-sep {
+    color: var(--line-2);
+    margin: 0 6px;
+  }
+  .timer-history-scores .th-name {
+    color: var(--muted);
+  }
+  .timer-history-scores .th-value {
+    color: var(--primary-d);
+    font-weight: 600;
+    margin-left: 2px;
+  }
+  .timer-history-empty {
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+    padding: 12px 0;
   }
 
   /* =========================================================
@@ -1389,9 +1446,14 @@
       <div class="count" id="count"></div>
       <button class="btn primary sm" id="addBtn">＋ 新建</button>
     </div>
-    <div class="timers" id="timers"></div>
+        <div class="timers" id="timers"></div>
     <div class="empty" id="empty">
       还没有计时器<br>点「＋ 新建」开始吧
+    </div>
+
+    <div class="timer-history-section">
+      <div class="timer-history-title">📖 计时历史</div>
+      <div id="timerHistoryList" class="timer-history-list"></div>
     </div>
   </section>
 
@@ -1700,9 +1762,13 @@
       document.querySelectorAll('.panel').forEach((p) => p.classList.add('hidden'));
       $('#panel-' + btn.dataset.tab).classList.remove('hidden');
 
-      // 切到种太阳时，重新渲染一次，确保画布正确绘制
+            // 切到种太阳时，重新渲染一次，确保画布正确绘制
       if (btn.dataset.tab === 'sun') {
         renderSunPanel();
+      }
+      // 切到计时器时，刷新历史记录
+      if (btn.dataset.tab === 'timer') {
+        renderTimerHistory();
       }
     });
   });
@@ -1711,10 +1777,12 @@
      3. 计时器
      ========================================================= */
     const T_KEY = 'my-timers-v2';
+    const TH_KEY = 'my-timer-history-v1';
+  let timerHistory = {};
     const timers = [];
     const cards = new Map();
 
-  function saveTimers() {
+    function saveTimers() {
     try {
       localStorage.setItem(T_KEY, JSON.stringify({
         savedAt: Date.now(),
@@ -1729,6 +1797,89 @@
         }))
       }));
     } catch (e) {}
+    try { snapshotTimerHistory(); } catch (e) {}
+  }
+    function loadTimerHistory() {
+    try {
+      const raw = localStorage.getItem(TH_KEY);
+      timerHistory = raw ? JSON.parse(raw) : {};
+      if (typeof timerHistory !== 'object' || !timerHistory) timerHistory = {};
+    } catch (e) { timerHistory = {}; }
+  }
+
+  function saveTimerHistory() {
+    try { localStorage.setItem(TH_KEY, JSON.stringify(timerHistory)); } catch (e) {}
+  }
+
+  function snapshotTimerHistory() {
+    const today = todayStr();
+    const snap = {};
+    timers.forEach((t) => {
+      const elapsed = t.accumulated + (t.running ? Date.now() - t.startedAt : 0);
+      if (elapsed > 0) snap[t.name] = elapsed;
+    });
+    if (Object.keys(snap).length === 0) return;
+    timerHistory[today] = snap;
+    saveTimerHistory();
+  }
+
+  function renderTimerHistory() {
+    const container = document.getElementById('timerHistoryList');
+    if (!container) return;
+    const dates = Object.keys(timerHistory).sort().reverse();
+    if (!dates.length) {
+      container.innerHTML = '<div class="timer-history-empty">还没有记录，计时后会自动保存到历史</div>';
+      return;
+    }
+    container.innerHTML = '';
+    dates.forEach((date) => {
+      const rec = timerHistory[date];
+      const item = document.createElement('div');
+      item.className = 'timer-history-item';
+
+      const dateEl = document.createElement('div');
+      dateEl.className = 'timer-history-date';
+      dateEl.textContent = date === todayStr() ? ('今天 · ' + date) : date;
+      item.appendChild(dateEl);
+
+      const entries = Object.entries(rec).filter(([, v]) => v > 0);
+      if (entries.length) {
+        const scoresEl = document.createElement('div');
+        scoresEl.className = 'timer-history-scores';
+        scoresEl.innerHTML = entries.map(([name, ms]) => {
+          const h = (ms / 3600000).toFixed(1);
+          return '<span class="th-name">' + escapeHtmlText(name) + '</span><span class="th-value">' + h + 'h</span>';
+        }).join('<span class="th-sep">|</span>');
+        item.appendChild(scoresEl);
+      } else {
+        const emptyEl = document.createElement('div');
+        emptyEl.className = 'timer-history-empty';
+        emptyEl.textContent = '（无计时）';
+        item.appendChild(emptyEl);
+      }
+
+      container.appendChild(item);
+    });
+  }
+
+  const T_INIT_KEY = 'my-timers-initialized-v1';
+  function initDefaultTimers() {
+    if (localStorage.getItem(T_INIT_KEY) === '1') return;
+    if (timers.length > 0) {
+      localStorage.setItem(T_INIT_KEY, '1');
+      return;
+    }
+    ['娱乐&拖延', '干活', '睡觉'].forEach((name) => {
+      const t = {
+        id: uid(), name, mode: 'up', duration: 0,
+        accumulated: 0, running: false, startedAt: null, finished: false
+      };
+      timers.push(t);
+      createCard(t);
+    });
+    updateMeta();
+    saveTimers();
+    localStorage.setItem(T_INIT_KEY, '1');
   }
 
   function loadTimers() {
@@ -2891,9 +3042,11 @@
   /* =========================================================
      10. 启动
      ========================================================= */
+    loadTimerHistory();
   loadTimers();
   timers.forEach(createCard);
   updateMeta();
+  initDefaultTimers();
 
   loadDays();
 
@@ -3858,6 +4011,7 @@
 
   // 心情数据加载完后，刷一次水印
   updateWatermark();
+  renderTimerHistory();
 
   window.addEventListener('beforeunload', () => { saveTimers(); saveTodoData(); saveSunData(); });
 
