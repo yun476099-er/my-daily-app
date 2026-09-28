@@ -416,6 +416,26 @@
     color: var(--ink);
     margin-bottom: 10px;
   }
+    .timer-history-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .timer-history-head .timer-history-title {
+    margin-bottom: 0;
+  }
+  .sun-history-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .sun-history-head .sun-history-title {
+    margin-bottom: 0;
+  }
   .timer-history-list {
     display: flex;
     flex-direction: column;
@@ -1557,8 +1577,11 @@
       还没有计时器<br>点「＋ 新建」开始吧
     </div>
 
-    <div class="timer-history-section">
-      <div class="timer-history-title">📖 计时历史</div>
+        <div class="timer-history-section">
+      <div class="timer-history-head">
+        <div class="timer-history-title">📖 计时历史</div>
+        <button type="button" class="sun-btn" id="archiveTimerBtn" style="font-size:12px; padding:4px 12px;">📦 存档今日</button>
+      </div>
       <div id="timerHistoryList" class="timer-history-list"></div>
     </div>
   </section>
@@ -1669,8 +1692,11 @@
       </div>
     </div>
         <!-- 心情历史记录 -->
-    <div class="sun-history-section">
-      <div class="sun-history-title">📖 心情历史</div>
+        <div class="sun-history-section">
+      <div class="sun-history-head">
+        <div class="sun-history-title">📖 心情历史</div>
+        <button type="button" class="sun-btn" id="archiveSunBtn" style="font-size:12px; padding:4px 12px;">📦 存档今日</button>
+      </div>
       <div id="sunHistoryList" class="sun-history-list"></div>
     </div>
   </section>
@@ -1941,8 +1967,10 @@
     try { localStorage.setItem(TH_KEY, JSON.stringify(timerHistory)); } catch (e) {}
   }
 
-      function snapshotTimerHistory() {
+            function snapshotTimerHistory() {
     const today = todayStr();
+    const existing = timerHistory[today];
+    if (existing && existing.archived) return;
 
     const items = [];
     timers.forEach((t) => {
@@ -2232,6 +2260,61 @@
       close();
     };
   }
+    async function archiveTimerToday() {
+    const today = todayStr();
+    const ok = await confirmDialog('存档今日记录？之后计时器和事项打卡将重置，方便开始新的一天。');
+    if (!ok) return;
+
+    // 1) 写最终快照，标记 archived
+    const items = [];
+    timers.forEach((t) => {
+      const elapsed = t.accumulated + (t.running ? Date.now() - t.startedAt : 0);
+      if (elapsed > 0) items.push({ id: t.id, name: t.name, ms: elapsed });
+    });
+
+    let dayVal = '';
+    let doneCount = 0;
+    let total = 0;
+    try {
+      dayVal = getDayVal();
+      const list = todayTodos();
+      total = list.length;
+      doneCount = list.filter((x) => x.done).length;
+    } catch (e) {}
+
+    timerHistory[today] = {
+      items: items,
+      day: dayVal,
+      done: doneCount,
+      total: total,
+      archived: true
+    };
+    saveTimerHistory();
+
+    // 2) 重置上方所有计时器
+    timers.forEach((t) => {
+      t.accumulated = 0;
+      t.running = false;
+      t.startedAt = null;
+      t.finished = false;
+      const c = cards.get(t.id);
+      if (c) c.timeEl.textContent = fmtMs(t.mode === 'down' ? t.duration : 0);
+      updateCardUI(t);
+    });
+    saveTimers();
+
+    // 3) 清空事项打卡和 Day 值
+    todoList.length = 0;
+    saveTodoData();
+    try { localStorage.removeItem(DAY_KEY); } catch (e) {}
+    todoDayInput.value = '';
+    renderTodos();
+    updateWatermark();
+
+    renderTimerHistory();
+    showToast('已存档，新的一天开始！');
+  }
+
   const T_INIT_KEY = 'my-timers-initialized-v1';
   function initDefaultTimers() {
     if (localStorage.getItem(T_INIT_KEY) === '1') return;
@@ -3514,8 +3597,11 @@
       .replace(/'/g, '&#39;');
   }
 
-  function snapshotSunToday() {
+    function snapshotSunToday() {
     const today = todayStr();
+    const existing = sunHistory[today];
+    if (existing && existing.archived) return;
+
     const hasContent = sunMood !== 0 || sunHappyNote.trim() || sunSadNote.trim();
     if (!hasContent && !sunHistory[today]) return;
     sunHistory[today] = {
@@ -4374,6 +4460,38 @@
       });
     }
   }
+    async function archiveSunToday() {
+    const today = todayStr();
+    const ok = await confirmDialog('存档今日心情记录？之后心情和笔记将清空，方便开始新的一天。');
+    if (!ok) return;
+
+    // 1) 写最终快照，标记 archived
+    sunHistory[today] = {
+      mood: sunMood,
+      happyNote: sunHappyNote,
+      sadNote: sunSadNote,
+      savedAt: Date.now(),
+      archived: true
+    };
+    saveSunHistory();
+    renderSunHistory();
+
+    // 2) 清空上方输入
+    sunMood = 0;
+    sunHappyNote = '';
+    sunSadNote = '';
+    try {
+      localStorage.setItem(SUN_KEY_MOOD, '0');
+      localStorage.setItem(SUN_KEY_HAPPY, '');
+      localStorage.setItem(SUN_KEY_SAD, '');
+    } catch (e) {}
+
+    updateSunMoodUI();
+    renderSunPanel();
+
+    showToast('已存档，新的一天开始！');
+  }
+
 
         /* 种太阳初始化 */
   loadSunData();
@@ -4382,9 +4500,15 @@
   renderSunPanel();
   renderSunHistory();
 
-  // 心情数据加载完后，刷一次水印
+    // 心情数据加载完后，刷一次水印
   updateWatermark();
   renderTimerHistory();
+
+  // 绑定存档按钮
+  try {
+    document.getElementById('archiveTimerBtn').addEventListener('click', archiveTimerToday);
+    document.getElementById('archiveSunBtn').addEventListener('click', archiveSunToday);
+  } catch (e) {}
 
   window.addEventListener('beforeunload', () => { saveTimers(); saveTodoData(); saveSunData(); });
 
