@@ -1923,7 +1923,7 @@
         const n = Number(ms) || 0;
         if (n > 0) items.push({ id: uid(), name, ms: n });
       });
-      timerHistory[date] = { items, day: '', done: 0, total: 0, locked: true };
+      timerHistory[date] = { items, day: '', done: 0, total: 0 };
       migrated = true;
     });
     if (migrated) saveTimerHistory();
@@ -1933,12 +1933,8 @@
     try { localStorage.setItem(TH_KEY, JSON.stringify(timerHistory)); } catch (e) {}
   }
 
-    function snapshotTimerHistory() {
+      function snapshotTimerHistory() {
     const today = todayStr();
-    const existing = timerHistory[today];
-
-    // 用户手动编辑过当天记录 → 锁定，不再被上方变化影响
-    if (existing && existing.locked) return;
 
     const items = [];
     timers.forEach((t) => {
@@ -1946,7 +1942,6 @@
       if (elapsed > 0) items.push({ id: t.id, name: t.name, ms: elapsed });
     });
 
-    // 抓取当天事项数据
     let dayVal = '';
     let doneCount = 0;
     let total = 0;
@@ -1957,15 +1952,13 @@
       doneCount = list.filter((x) => x.done).length;
     } catch (e) {}
 
-    // 无计时 + 无事项 → 不写
     if (!items.length && !dayVal && total === 0) return;
 
     timerHistory[today] = {
       items,
       day: dayVal,
       done: doneCount,
-      total: total,
-      locked: false
+      total: total
     };
     saveTimerHistory();
   }
@@ -2161,15 +2154,68 @@
     mk.addEventListener('click', (e) => { if (e.target === mk) close(); });
     box.addEventListener('click', (e) => e.stopPropagation());
 
-    saveBtn.onclick = () => {
+        saveBtn.onclick = () => {
       const cleaned = workingItems
         .filter((x) => x.name && x.name.trim() && x.ms > 0)
         .map((x) => ({ id: x.id || uid(), name: x.name.trim(), ms: x.ms }));
+
       rec.items = cleaned;
-      rec.locked = true; // 锁定，不再随上方变化
       saveTimerHistory();
+
+      // 如果编辑的是今天 → 同步到上方计时器
+      if (date === todayStr()) {
+        // 1) 上面有、编辑后没有的 → 从上方删掉
+        const editedIds = new Set(cleaned.map((it) => it.id));
+        for (let i = timers.length - 1; i >= 0; i--) {
+          if (!editedIds.has(timers[i].id)) {
+            const c = cards.get(timers[i].id);
+            if (c) { c.root.remove(); cards.delete(timers[i].id); }
+            timers.splice(i, 1);
+          }
+        }
+
+        // 2) 编辑后的每一项，去更新或新建上方计时器
+        cleaned.forEach((editedItem) => {
+          let match = timers.find((t) => t.id === editedItem.id);
+
+          if (!match) {
+            // 编辑里加的、上方没有 → 新建一个
+            const t = {
+              id: editedItem.id, name: editedItem.name, mode: 'up', duration: 0,
+              accumulated: editedItem.ms, running: false, startedAt: null, finished: false
+            };
+            timers.push(t);
+            createCard(t);
+          } else {
+            // 上方已有 → 改名字、改时长
+            match.name = editedItem.name;
+            if (match.running) {
+              match.accumulated += Date.now() - match.startedAt;
+              match.running = false;
+              match.startedAt = null;
+            }
+            match.accumulated = editedItem.ms;
+
+            const c = cards.get(match.id);
+            if (c) {
+              const nameEl = c.root.querySelector('.name');
+              if (nameEl) nameEl.textContent = match.name;
+              c.timeEl.textContent = fmtMs(
+                match.mode === 'down'
+                  ? Math.max(0, match.duration - match.accumulated)
+                  : match.accumulated
+              );
+            }
+            updateCardUI(match);
+          }
+        });
+
+        updateMeta();
+        saveTimers();
+      }
+
       renderTimerHistory();
-      showToast('已保存并锁定此日记录');
+      showToast('已保存');
       close();
     };
   }
