@@ -987,6 +987,30 @@
     animation: slideUp .22s ease;
   }
   .player.hidden{ display: none; }
+    .backup-bar {
+    margin-top: 26px;
+    padding: 14px 16px;
+    background: rgba(254, 252, 232, 0.72);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    text-align: center;
+  }
+  .backup-hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .backup-btns {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .backup-btns .sun-btn {
+    padding: 8px 18px;
+    font-size: 13px;
+  }
+
   @keyframes slideUp{ from{ transform: translateY(20px); opacity: 0; } }
 
   .player-info{ flex: 1; min-width: 0; }
@@ -1701,6 +1725,16 @@
     </div>
   </section>
 
+</div>
+
+  <!-- 数据备份条 -->
+<div class="backup-bar">
+  <div class="backup-hint">💡 定期备份，防数据丢失</div>
+  <div class="backup-btns">
+    <button type="button" class="sun-btn" id="exportDataBtn">📦 备份数据</button>
+    <button type="button" class="sun-btn" id="importDataBtn">📥 恢复数据</button>
+    <input type="file" id="importDataFile" accept="application/json,.json" style="display:none;">
+  </div>
 </div>
 
 <!-- 底部播放条 -->
@@ -4508,6 +4542,142 @@
   try {
     document.getElementById('archiveTimerBtn').addEventListener('click', archiveTimerToday);
     document.getElementById('archiveSunBtn').addEventListener('click', archiveSunToday);
+  } catch (e) {}
+
+    /* =========================================================
+     数据备份 / 恢复
+     ========================================================= */
+  function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const s = reader.result || '';
+        const idx = s.indexOf(',');
+        resolve(idx >= 0 ? s.slice(idx + 1) : '');
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  function base64ToBlob(b64, type) {
+    const binary = atob(b64);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: type || 'audio/webm' });
+  }
+
+  async function exportAllData() {
+    showToast('正在打包数据…');
+
+    const data = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      localStorage: {},
+      recordings: []
+    };
+
+    // 1) 所有 localStorage 键
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        data.localStorage[k] = localStorage.getItem(k);
+      }
+    } catch (e) {}
+
+    // 2) IndexedDB 里的录音
+    try {
+      const allDays = await dbGetAll();
+      for (const day of allDays) {
+        const segs = [];
+        for (const seg of day.segments) {
+          try {
+            const b64 = await blobToBase64(seg.blob);
+            segs.push({
+              id: seg.id,
+              title: seg.title,
+              duration: seg.duration,
+              createdAt: seg.createdAt,
+              blobBase64: b64,
+              blobType: (seg.blob && seg.blob.type) || 'audio/webm'
+            });
+          } catch (e) {}
+        }
+        data.recordings.push({ date: day.date, segments: segs });
+      }
+    } catch (e) {
+      console.warn('录音读取失败', e);
+    }
+
+    const json = JSON.stringify(data);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '每日记备份_' + todayStr() + '.json';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 200);
+
+    showToast('已导出，请在「文件」App 中保存');
+  }
+
+  async function importAllData(file) {
+    showToast('正在恢复数据…');
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      if (!data || data.version !== 1) {
+        showToast('备份文件格式不正确');
+        return;
+      }
+
+      // 1) 恢复 localStorage
+      if (data.localStorage && typeof data.localStorage === 'object') {
+        Object.keys(data.localStorage).forEach((k) => {
+          try { localStorage.setItem(k, data.localStorage[k]); } catch (e) {}
+        });
+      }
+
+      // 2) 恢复录音
+      if (Array.isArray(data.recordings)) {
+        for (const day of data.recordings) {
+          const segments = (day.segments || []).map((s) => ({
+            id: s.id,
+            title: s.title,
+            duration: s.duration,
+            createdAt: s.createdAt,
+            blob: base64ToBlob(s.blobBase64, s.blobType)
+          }));
+          if (segments.length) {
+            await dbPut({ date: day.date, segments });
+          }
+        }
+      }
+
+      showToast('恢复成功，即将刷新…');
+      setTimeout(() => location.reload(), 1200);
+    } catch (e) {
+      console.error(e);
+      showToast('恢复失败：' + (e && e.message ? e.message : e));
+    }
+  }
+
+  try {
+    document.getElementById('exportDataBtn').addEventListener('click', exportAllData);
+    document.getElementById('importDataBtn').addEventListener('click', () => {
+      document.getElementById('importDataFile').click();
+    });
+    document.getElementById('importDataFile').addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (f) importAllData(f);
+      e.target.value = '';
+    });
   } catch (e) {}
 
   window.addEventListener('beforeunload', () => { saveTimers(); saveTodoData(); saveSunData(); });
