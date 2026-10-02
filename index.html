@@ -467,6 +467,32 @@
     background: var(--primary-l);
     color: var(--primary-d);
   }
+    .timer-history-del-btn {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    background: var(--rose-l);
+    border: 1px solid var(--line-2);
+    border-radius: 8px;
+    color: #b06060;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+    margin-left: 4px;
+  }
+  .timer-history-del-btn:hover {
+    background: #f2dcdc;
+    color: #a05050;
+  }
+  .timer-history-note {
+    font-size: 11px;
+    color: var(--muted);
+    font-style: italic;
+    margin: 2px 0 4px;
+  }
   .te-list {
     display: flex;
     flex-direction: column;
@@ -2068,7 +2094,7 @@
       dateEl.textContent = headText;
       headRow.appendChild(dateEl);
 
-      const editBtn = document.createElement('button');
+            const editBtn = document.createElement('button');
       editBtn.type = 'button';
       editBtn.className = 'timer-history-edit-btn';
       editBtn.textContent = '✏️';
@@ -2079,7 +2105,25 @@
       };
       headRow.appendChild(editBtn);
 
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'timer-history-del-btn';
+      delBtn.textContent = '🗑';
+      delBtn.title = '删除此日记录';
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        deleteTimerHistoryDate(date);
+      };
+      headRow.appendChild(delBtn);
+
       item.appendChild(headRow);
+
+      if (rec.note) {
+        const noteEl = document.createElement('div');
+        noteEl.className = 'timer-history-note';
+        noteEl.textContent = '📝 ' + rec.note;
+        item.appendChild(noteEl);
+      }
 
       /* 第二行：项目 */
       const validItems = items.filter((x) => x && x.ms > 0);
@@ -2116,6 +2160,18 @@
       container.appendChild(item);
     });
   }
+      async function deleteTimerHistoryDate(date) {
+    const ok = await confirmDialog('删除 ' + date + ' 的计时历史？此操作不可撤销。');
+    if (!ok) return;
+
+    delete timerHistory[date];
+    saveTimerHistory();
+    renderTimerHistory();
+
+    // 如果删的是今天，之后再有任何上方变化，就会重新写入今天的历史
+    showToast('已删除 ' + date + ' 的记录');
+  }
+
     function showTimerHistoryEditDialog(date, rec) {
     if (!rec.items) rec.items = [];
     const workingItems = rec.items.map((x) => ({ ...x }));
@@ -2129,10 +2185,28 @@
     box.style.textAlign = 'left';
     box.style.padding = '20px 18px 16px';
 
-    const title = document.createElement('h3');
+        const title = document.createElement('h3');
     title.textContent = '✏️ 编辑 ' + date;
     title.style.cssText = 'margin:0 0 12px; font-size:15px; color:var(--ink); text-align:center;';
     box.appendChild(title);
+
+    const noteLabel = document.createElement('label');
+    noteLabel.textContent = '备注（如：day off、放假、生病）';
+    noteLabel.style.cssText = 'display:block; font-size:12px; color:var(--muted); margin:0 0 4px;';
+    box.appendChild(noteLabel);
+
+    const noteInput = document.createElement('input');
+    noteInput.type = 'text';
+    noteInput.maxLength = 40;
+    noteInput.value = rec.note || '';
+    noteInput.placeholder = '可选';
+    noteInput.style.cssText = 'width:100%; padding:8px 10px; border:1px solid var(--line-2); border-radius:8px; font-family:inherit; font-size:13px; color:var(--ink); background:#f8fbf9; outline:none; margin-bottom:12px;';
+    box.appendChild(noteInput);
+
+    const sep = document.createElement('div');
+    sep.style.cssText = 'font-size:12px; color:var(--muted); margin-bottom:6px;';
+    sep.textContent = '计时项';
+    box.appendChild(sep);
 
     const list = document.createElement('div');
     list.className = 'te-list';
@@ -2196,6 +2270,17 @@
     };
     box.appendChild(addBtn);
 
+        const delDateBtn = document.createElement('button');
+    delDateBtn.type = 'button';
+    delDateBtn.className = 'sun-btn';
+    delDateBtn.textContent = '🗑 删除此日';
+    delDateBtn.style.cssText = 'flex:1; padding:9px 0; background:#fceeee; color:#b06060; margin-bottom:10px;';
+    delDateBtn.onclick = async () => {
+      close();
+      await deleteTimerHistoryDate(date);
+    };
+    box.appendChild(delDateBtn);
+
     const actions = document.createElement('div');
     actions.style.cssText = 'display:flex; gap:8px; margin-top:16px;';
 
@@ -2234,7 +2319,8 @@
         .filter((x) => x.name && x.name.trim() && x.ms > 0)
         .map((x) => ({ id: x.id || uid(), name: x.name.trim(), ms: x.ms }));
 
-      rec.items = cleaned;
+            rec.items = cleaned;
+      rec.note = noteInput.value.trim();
       saveTimerHistory();
 
       // 如果编辑的是今天 → 同步到上方计时器
