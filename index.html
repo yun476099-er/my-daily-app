@@ -2188,9 +2188,10 @@
     showToast('已删除 ' + date + ' 的记录');
   }
 
-    function showTimerHistoryEditDialog(date, rec) {
+        function showTimerHistoryEditDialog(date, rec) {
     if (!rec.items) rec.items = [];
     const workingItems = rec.items.map((x) => ({ ...x }));
+    const isTodayAndLive = (date === todayStr() && !rec.archived);
 
     const mk = document.createElement('div');
     mk.className = 'confirm-mask';
@@ -2201,12 +2202,12 @@
     box.style.textAlign = 'left';
     box.style.padding = '20px 18px 16px';
 
-        const title = document.createElement('h3');
+    const title = document.createElement('h3');
     title.textContent = '✏️ 编辑 ' + date;
     title.style.cssText = 'margin:0 0 12px; font-size:15px; color:var(--ink); text-align:center;';
     box.appendChild(title);
 
-        const dayLabel = document.createElement('label');
+    const dayLabel = document.createElement('label');
     dayLabel.textContent = 'Day 值（留空 / off / 数字）';
     dayLabel.style.cssText = 'display:block; font-size:12px; color:var(--muted); margin:0 0 4px;';
     box.appendChild(dayLabel);
@@ -2232,7 +2233,7 @@
     noteInput.style.cssText = 'width:100%; padding:8px 10px; border:1px solid var(--line-2); border-radius:8px; font-family:inherit; font-size:13px; color:var(--ink); background:#f8fbf9; outline:none; margin-bottom:12px;';
     box.appendChild(noteInput);
 
-        const doneLabel = document.createElement('label');
+    const doneLabel = document.createElement('label');
     doneLabel.textContent = '完成情况（不填则不显示）';
     doneLabel.style.cssText = 'display:block; font-size:12px; color:var(--muted); margin:0 0 4px;';
     box.appendChild(doneLabel);
@@ -2252,25 +2253,26 @@
     totalInput.value = rec.total !== undefined ? rec.total : '';
     totalInput.style.cssText = 'flex:1; padding:8px 10px; border:1px solid var(--line-2); border-radius:8px; font-size:13px; text-align:center;';
     
-        if (isTodayAndLive) {
+    if (isTodayAndLive) {
       doneInput.disabled = true;
       totalInput.disabled = true;
     }
-      doneRow.appendChild(doneInput);
+    doneRow.appendChild(doneInput);
     doneRow.appendChild(totalInput);
     box.appendChild(doneRow);
 
-        const isTodayAndLive = (date === todayStr() && !rec.archived);
     if (isTodayAndLive) {
       const tip = document.createElement('div');
       tip.textContent = '提示：今日未存档，计时项和完成情况实时更新，仅可修改 Day 和备注';
       tip.style.cssText = 'font-size:12px; color:var(--primary-d); background:var(--primary-l); padding:8px; border-radius:6px; margin-bottom:12px; text-align:center; line-height:1.4;';
-      box.insertBefore(tip, sep);
+      box.appendChild(tip);
     }
+
     const sep = document.createElement('div');
     sep.style.cssText = 'font-size:12px; color:var(--muted); margin-bottom:6px;';
     sep.textContent = '计时项';
     box.appendChild(sep);
+    
     const list = document.createElement('div');
     list.className = 'te-list';
     box.appendChild(list);
@@ -2287,10 +2289,7 @@
         nameInp.value = it.name || '';
         nameInp.maxLength = 24;
         nameInp.placeholder = '项目名称';
-                if (isTodayAndLive) {
-          nameInp.disabled = true;
-          msInp.disabled = true;
-        }
+        if (isTodayAndLive) nameInp.disabled = true;
         nameInp.addEventListener('input', () => { it.name = nameInp.value; });
         row.appendChild(nameInp);
 
@@ -2300,6 +2299,7 @@
         msInp.min = '0';
         msInp.step = '0.1';
         msInp.value = ((it.ms || 0) / 3600000).toFixed(1);
+        if (isTodayAndLive) msInp.disabled = true;
         msInp.addEventListener('input', () => {
           const v = parseFloat(msInp.value);
           it.ms = (isFinite(v) && v >= 0) ? Math.round(v * 3600000) : 0;
@@ -2337,7 +2337,7 @@
     };
     box.appendChild(addBtn);
 
-        const delDateBtn = document.createElement('button');
+    const delDateBtn = document.createElement('button');
     delDateBtn.type = 'button';
     delDateBtn.className = 'sun-btn';
     delDateBtn.textContent = '🗑 删除此日';
@@ -2381,28 +2381,24 @@
     mk.addEventListener('click', (e) => { if (e.target === mk) close(); });
     box.addEventListener('click', (e) => e.stopPropagation());
 
-        saveBtn.onclick = () => {
+    saveBtn.onclick = () => {
       const cleaned = workingItems
         .filter((x) => x.name && x.name.trim() && x.ms > 0)
         .map((x) => ({ id: x.id || uid(), name: x.name.trim(), ms: x.ms }));
 
-                              timerHistory[date] = timerHistory[date] || {};
+      timerHistory[date] = timerHistory[date] || {};
       timerHistory[date].day = dayInput.value.trim();
       timerHistory[date].note = noteInput.value.trim();
 
-      // 如果是今天且未存档，不保存 items、done、total，因为它们是实时的
-      const isTodayAndLive = (date === todayStr() && !timerHistory[date].archived);
       if (!isTodayAndLive) {
         timerHistory[date].items = cleaned;
         timerHistory[date].done = doneInput.value ? parseInt(doneInput.value, 10) : 0;
         timerHistory[date].total = totalInput.value ? parseInt(totalInput.value, 10) : 0;
-        timerHistory[date].manualEdit = true; // 锁定历史记录，防止被快照覆盖
+        timerHistory[date].manualEdit = true;
       }
       saveTimerHistory();
 
-      // 如果编辑的是今天 → 同步到上方计时器
       if (date === todayStr()) {
-        // 1) 上面有、编辑后没有的 → 从上方删掉
         const editedIds = new Set(cleaned.map((it) => it.id));
         for (let i = timers.length - 1; i >= 0; i--) {
           if (!editedIds.has(timers[i].id)) {
@@ -2412,12 +2408,9 @@
           }
         }
 
-        // 2) 编辑后的每一项，去更新或新建上方计时器
         cleaned.forEach((editedItem) => {
           let match = timers.find((t) => t.id === editedItem.id);
-
           if (!match) {
-            // 编辑里加的、上方没有 → 新建一个
             const t = {
               id: editedItem.id, name: editedItem.name, mode: 'up', duration: 0,
               accumulated: editedItem.ms, running: false, startedAt: null, finished: false
@@ -2425,7 +2418,6 @@
             timers.push(t);
             createCard(t);
           } else {
-            // 上方已有 → 改名字、改时长
             match.name = editedItem.name;
             if (match.running) {
               match.accumulated += Date.now() - match.startedAt;
@@ -2433,7 +2425,6 @@
               match.startedAt = null;
             }
             match.accumulated = editedItem.ms;
-
             const c = cards.get(match.id);
             if (c) {
               const nameEl = c.root.querySelector('.name');
@@ -2705,10 +2696,14 @@
   }
 
   let lastTSave = 0;
+    let lastTSave = 0;
   setInterval(() => {
     const now = Date.now();
     const done = [];
+    let hasTimerRunning = false;
+
     for (const t of timers) {
+      if (t.running) hasTimerRunning = true;
       const c = cards.get(t.id);
       if (!c) continue;
       const elapsed = t.accumulated + (t.running ? now - t.startedAt : 0);
@@ -2723,9 +2718,41 @@
       if (c.timeEl.textContent !== text) c.timeEl.textContent = text;
     }
     done.forEach(finishTimer);
-    if (now - lastTSave > 1000 && timers.some((t) => t.running)) { lastTSave = now; saveTimers(); }
-  }, 100);
 
+    // 实时更新今日历史卡片，不触发列表重绘
+    const todayItem = document.querySelector('.timer-history-item');
+    if (todayItem && todayItem.querySelector('.timer-history-date') && todayItem.querySelector('.timer-history-date').textContent.includes('今天')) {
+      const todayEl = todayItem.querySelector('.timer-history-date');
+      const dayVal = (getDayVal() || '').trim();
+      const liveList = todayTodos();
+      const doneCount = liveList.filter((x) => x.done).length;
+      
+      let headText = '今天 · ' + todayStr();
+      if (dayVal) {
+        headText += (dayVal.toLowerCase() === 'off' || dayVal === '休息') ? ' · Day off' : ' · Day ' + dayVal;
+      }
+      if (liveList.length > 0) headText += ' -完成 ' + doneCount + ' / ' + liveList.length;
+      if (todayEl.textContent !== headText) todayEl.textContent = headText;
+
+      const scoresEl = todayItem.querySelector('.timer-history-scores');
+      if (scoresEl) {
+        let liveText = '';
+        timers.forEach((t) => {
+          const elapsed = t.accumulated + (t.running ? now - t.startedAt : 0);
+          if (elapsed > 0) {
+            if (liveText) liveText += ' | ';
+            liveText += t.name + ' ' + (elapsed / 3600000).toFixed(1) + 'h';
+          }
+        });
+        if (scoresEl.textContent !== liveText) scoresEl.textContent = liveText;
+      }
+    }
+
+    if (now - lastTSave > 1000 && hasTimerRunning) {
+      lastTSave = now;
+      try { snapshotTimerHistory(); } catch (e) {}
+    }
+  }, 100);
   /* ---------- 弹窗 ---------- */
   const mask = $('#mask'), segToggle = $('#segToggle'), downRow = $('#downRow');
   const mName = $('#mName'), mH = $('#mH'), mM = $('#mM'), mS = $('#mS');
