@@ -2068,9 +2068,25 @@
     container.innerHTML = '';
 
     dates.forEach((date) => {
-      const rec = timerHistory[date] || {};
-      const items = Array.isArray(rec.items) ? rec.items : [];
+            const rawRec = timerHistory[date] || {};
       const isToday = date === todayStr();
+      let rec = { ...rawRec }; // 创建副本，防止污染原数据
+
+      // 如果是今天，且没有存档，且没有手动锁定编辑，则动态获取最新实时数据
+      if (isToday && !rawRec.archived && !rawRec.manualEdit) {
+        const liveItems = [];
+        timers.forEach((t) => {
+          const elapsed = t.accumulated + (t.running ? Date.now() - t.startedAt : 0);
+          if (elapsed > 0) liveItems.push({ id: t.id, name: t.name, ms: elapsed });
+        });
+        const liveList = todayTodos();
+        rec.items = liveItems;
+        rec.day = getDayVal();
+        rec.done = liveList.filter((x) => x.done).length;
+        rec.total = liveList.length;
+      }
+
+      const items = Array.isArray(rec.items) ? rec.items : [];
 
       const item = document.createElement('div');
       item.className = 'timer-history-item';
@@ -2189,6 +2205,19 @@
     title.textContent = '✏️ 编辑 ' + date;
     title.style.cssText = 'margin:0 0 12px; font-size:15px; color:var(--ink); text-align:center;';
     box.appendChild(title);
+
+        const dayLabel = document.createElement('label');
+    dayLabel.textContent = 'Day 值（留空 / off / 数字）';
+    dayLabel.style.cssText = 'display:block; font-size:12px; color:var(--muted); margin:0 0 4px;';
+    box.appendChild(dayLabel);
+
+    const dayInput = document.createElement('input');
+    dayInput.type = 'text';
+    dayInput.maxLength = 10;
+    dayInput.value = rec.day || '';
+    dayInput.placeholder = '例如：16 或 off';
+    dayInput.style.cssText = 'width:100%; padding:8px 10px; border:1px solid var(--line-2); border-radius:8px; font-family:inherit; font-size:13px; color:var(--ink); background:#f8fbf9; outline:none; margin-bottom:12px;';
+    box.appendChild(dayInput);
 
     const noteLabel = document.createElement('label');
     noteLabel.textContent = '备注';
@@ -2342,7 +2371,8 @@
         .filter((x) => x.name && x.name.trim() && x.ms > 0)
         .map((x) => ({ id: x.id || uid(), name: x.name.trim(), ms: x.ms }));
 
-                  rec.items = cleaned;
+                        rec.items = cleaned;
+      rec.day = dayInput.value.trim(); // 新增：保存 Day
       rec.done = doneInput.value ? parseInt(doneInput.value, 10) : 0;
       rec.total = totalInput.value ? parseInt(totalInput.value, 10) : 0;
       rec.manualEdit = true; // 阻止被自动刷新覆盖
@@ -3755,7 +3785,7 @@
     function snapshotSunToday() {
     const today = todayStr();
     const existing = sunHistory[today];
-        if (existing && (existing.archived || existing.manualEdit)) return;
+            if (existing && existing.archived) return;
 
     const hasContent = sunMood !== 0 || sunHappyNote.trim() || sunSadNote.trim();
     if (!hasContent && !sunHistory[today]) return;
