@@ -1669,7 +1669,7 @@
     <div class="bar">
       <div class="todo-dayline">
         <span class="todo-day-label">Day</span>
-        <input type="text" class="todo-day-input" id="todoDayInput" maxlength="6" placeholder="—" inputmode="numeric">
+        <input type="text" class="todo-day-input" id="todoDayInput" maxlength="6" placeholder="—" inputmode="text">
         <span class="todo-day-done" id="todoCount"></span>
       </div>
       <button class="btn sm" id="todoClear">清空</button>
@@ -2082,12 +2082,12 @@
             const dateEl = document.createElement('span');
       dateEl.className = 'timer-history-date';
       let headText = isToday ? ('今天 · ' + date) : date;
-            if (rec.day && rec.day.trim() !== '') {
-        const dayVal = rec.day.trim().toLowerCase();
-        if (dayVal === 'off') {
+                  const dayVal = (rec.day || '').trim();
+      if (dayVal) {
+        if (dayVal.toLowerCase() === 'off' || dayVal === '休息') {
           headText += ' · Day off';
         } else {
-          headText += ' · Day ' + rec.day;
+          headText += ' · Day ' + dayVal;
         }
       }
       if (rec.total > 0) headText += ' -完成 ' + (rec.done || 0) + ' / ' + rec.total;
@@ -2203,11 +2203,34 @@
     noteInput.style.cssText = 'width:100%; padding:8px 10px; border:1px solid var(--line-2); border-radius:8px; font-family:inherit; font-size:13px; color:var(--ink); background:#f8fbf9; outline:none; margin-bottom:12px;';
     box.appendChild(noteInput);
 
+        const doneLabel = document.createElement('label');
+    doneLabel.textContent = '完成情况（不填则不显示）';
+    doneLabel.style.cssText = 'display:block; font-size:12px; color:var(--muted); margin:0 0 4px;';
+    box.appendChild(doneLabel);
+
+    const doneRow = document.createElement('div');
+    doneRow.style.cssText = 'display:flex; gap:8px; margin-bottom:12px;';
+    
+    const doneInput = document.createElement('input');
+    doneInput.type = 'number';
+    doneInput.placeholder = '已完成';
+    doneInput.value = rec.done !== undefined ? rec.done : '';
+    doneInput.style.cssText = 'flex:1; padding:8px 10px; border:1px solid var(--line-2); border-radius:8px; font-size:13px; text-align:center;';
+    
+    const totalInput = document.createElement('input');
+    totalInput.type = 'number';
+    totalInput.placeholder = '总数';
+    totalInput.value = rec.total !== undefined ? rec.total : '';
+    totalInput.style.cssText = 'flex:1; padding:8px 10px; border:1px solid var(--line-2); border-radius:8px; font-size:13px; text-align:center;';
+    
+    doneRow.appendChild(doneInput);
+    doneRow.appendChild(totalInput);
+    box.appendChild(doneRow);
+
     const sep = document.createElement('div');
     sep.style.cssText = 'font-size:12px; color:var(--muted); margin-bottom:6px;';
     sep.textContent = '计时项';
     box.appendChild(sep);
-
     const list = document.createElement('div');
     list.className = 'te-list';
     box.appendChild(list);
@@ -2319,7 +2342,10 @@
         .filter((x) => x.name && x.name.trim() && x.ms > 0)
         .map((x) => ({ id: x.id || uid(), name: x.name.trim(), ms: x.ms }));
 
-            rec.items = cleaned;
+                  rec.items = cleaned;
+      rec.done = doneInput.value ? parseInt(doneInput.value, 10) : 0;
+      rec.total = totalInput.value ? parseInt(totalInput.value, 10) : 0;
+      rec.manualEdit = true; // 阻止被自动刷新覆盖
       rec.note = noteInput.value.trim();
       saveTimerHistory();
 
@@ -3427,7 +3453,16 @@
 
     function updateWatermark() {
     const dayVal = getDayVal();
-    watermarkDay.textContent = 'Day ' + (dayVal || '—');
+        const dayStr = (dayVal || '').trim();
+    if (dayStr) {
+      if (dayStr.toLowerCase() === 'off' || dayStr === '休息') {
+        watermarkDay.textContent = 'Day off';
+      } else {
+        watermarkDay.textContent = 'Day ' + dayStr;
+      }
+    } else {
+      watermarkDay.textContent = 'Day —';
+    }
 
     // 读取「心情记」当前的心情值（-5 ~ +5）
     let moodVal = 0;
@@ -3720,7 +3755,7 @@
     function snapshotSunToday() {
     const today = todayStr();
     const existing = sunHistory[today];
-    if (existing && existing.archived) return;
+        if (existing && (existing.archived || existing.manualEdit)) return;
 
     const hasContent = sunMood !== 0 || sunHappyNote.trim() || sunSadNote.trim();
     if (!hasContent && !sunHistory[today]) return;
