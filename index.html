@@ -1197,9 +1197,11 @@
   }
   .confirm-mask.show{ background: rgba(45,58,52,0.38); }
 
-  .confirm-box{
+    .confirm-box{
     width: 100%;
     max-width: 300px;
+    max-height: 85vh;
+    overflow-y: auto;
     padding: 22px 18px 16px;
     background: #fff;
     border-radius: 16px;
@@ -2189,9 +2191,20 @@
   }
 
             function showTimerHistoryEditDialog(date, rec) {
-    if (!rec.items) rec.items = [];
-    const workingItems = rec.items.map((x) => ({ ...x }));
+        let workingItems = [];
     const isTodayAndLive = (date === todayStr() && !rec.archived);
+    
+    if (isTodayAndLive) {
+      // 实时状态：直接抓取当前所有计时器，不管有没有开始跑
+      timers.forEach((t) => {
+        const elapsed = t.accumulated + (t.running ? Date.now() - t.startedAt : 0);
+        workingItems.push({ id: t.id, name: t.name, ms: elapsed });
+      });
+    } else {
+      // 历史状态：从存档快照中取
+      if (!rec.items) rec.items = [];
+      workingItems = rec.items.map((x) => ({ ...x }));
+    }
 
     const mk = document.createElement('div');
     mk.className = 'confirm-mask';
@@ -2398,7 +2411,7 @@
       }
       saveTimerHistory();
 
-      if (date === todayStr()) {
+            if (date === todayStr() && !isTodayAndLive) {
         const editedIds = new Set(cleaned.map((it) => it.id));
         for (let i = timers.length - 1; i >= 0; i--) {
           if (!editedIds.has(timers[i].id)) {
