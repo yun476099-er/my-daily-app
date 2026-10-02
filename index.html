@@ -2079,7 +2079,7 @@
         const liveItems = [];
         timers.forEach((t) => {
           const elapsed = t.accumulated + (t.running ? Date.now() - t.startedAt : 0);
-          if (elapsed > 0) liveItems.push({ id: t.id, name: t.name, ms: elapsed });
+          liveItems.push({ id: t.id, name: t.name, ms: elapsed });
         });
         const liveList = todayTodos();
         rec.items = liveItems;
@@ -2191,15 +2191,24 @@
   }
 
             function showTimerHistoryEditDialog(date, rec) {
-        let workingItems = [];
+            let workingItems = [];
     const isTodayAndLive = (date === todayStr() && !rec.archived);
     
-    if (isTodayAndLive) {
-      // 实时状态：直接抓取当前所有计时器，不管有没有开始跑
+    if (date === todayStr()) {
+      // 针对“今天”，无论是实时状态还是已存档状态，都合并所有计时器项目
+      const itemMap = new Map();
+      // 先放入当前的 timers（包含所有项，哪怕是0）
       timers.forEach((t) => {
         const elapsed = t.accumulated + (t.running ? Date.now() - t.startedAt : 0);
-        workingItems.push({ id: t.id, name: t.name, ms: elapsed });
+        itemMap.set(t.id, { id: t.id, name: t.name, ms: elapsed });
       });
+      // 如果今天已经存档，用存档里的时间覆盖（以防存档后计时器被重置）
+      if (rec.items) {
+        rec.items.forEach(it => {
+          itemMap.set(it.id, { id: it.id, name: it.name, ms: it.ms });
+        });
+      }
+      workingItems = Array.from(itemMap.values());
     } else {
       // 历史状态：从存档快照中取
       if (!rec.items) rec.items = [];
@@ -2395,8 +2404,8 @@
     box.addEventListener('click', (e) => e.stopPropagation());
 
     saveBtn.onclick = () => {
-      const cleaned = workingItems
-        .filter((x) => x.name && x.name.trim() && x.ms > 0)
+            const cleaned = workingItems
+        .filter((x) => x.name && x.name.trim())
         .map((x) => ({ id: x.id || uid(), name: x.name.trim(), ms: x.ms }));
 
       timerHistory[date] = timerHistory[date] || {};
