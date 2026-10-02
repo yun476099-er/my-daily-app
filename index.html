@@ -2073,7 +2073,7 @@
       let rec = { ...rawRec }; // 创建副本，防止污染原数据
 
       // 如果是今天，且没有存档，且没有手动锁定编辑，则动态获取最新实时数据
-      if (isToday && !rawRec.archived && !rawRec.manualEdit) {
+            if (isToday && !rawRec.archived) {
         const liveItems = [];
         timers.forEach((t) => {
           const elapsed = t.accumulated + (t.running ? Date.now() - t.startedAt : 0);
@@ -2252,10 +2252,21 @@
     totalInput.value = rec.total !== undefined ? rec.total : '';
     totalInput.style.cssText = 'flex:1; padding:8px 10px; border:1px solid var(--line-2); border-radius:8px; font-size:13px; text-align:center;';
     
-    doneRow.appendChild(doneInput);
+        if (isTodayAndLive) {
+      doneInput.disabled = true;
+      totalInput.disabled = true;
+    }
+      doneRow.appendChild(doneInput);
     doneRow.appendChild(totalInput);
     box.appendChild(doneRow);
 
+        const isTodayAndLive = (date === todayStr() && !rec.archived);
+    if (isTodayAndLive) {
+      const tip = document.createElement('div');
+      tip.textContent = '提示：今日未存档，计时项和完成情况实时更新，仅可修改 Day 和备注';
+      tip.style.cssText = 'font-size:12px; color:var(--primary-d); background:var(--primary-l); padding:8px; border-radius:6px; margin-bottom:12px; text-align:center; line-height:1.4;';
+      box.insertBefore(tip, sep);
+    }
     const sep = document.createElement('div');
     sep.style.cssText = 'font-size:12px; color:var(--muted); margin-bottom:6px;';
     sep.textContent = '计时项';
@@ -2276,6 +2287,10 @@
         nameInp.value = it.name || '';
         nameInp.maxLength = 24;
         nameInp.placeholder = '项目名称';
+                if (isTodayAndLive) {
+          nameInp.disabled = true;
+          msInp.disabled = true;
+        }
         nameInp.addEventListener('input', () => { it.name = nameInp.value; });
         row.appendChild(nameInp);
 
@@ -2371,12 +2386,18 @@
         .filter((x) => x.name && x.name.trim() && x.ms > 0)
         .map((x) => ({ id: x.id || uid(), name: x.name.trim(), ms: x.ms }));
 
-                        rec.items = cleaned;
-      rec.day = dayInput.value.trim(); // 新增：保存 Day
-      rec.done = doneInput.value ? parseInt(doneInput.value, 10) : 0;
-      rec.total = totalInput.value ? parseInt(totalInput.value, 10) : 0;
-      rec.manualEdit = true; // 阻止被自动刷新覆盖
-      rec.note = noteInput.value.trim();
+                              timerHistory[date] = timerHistory[date] || {};
+      timerHistory[date].day = dayInput.value.trim();
+      timerHistory[date].note = noteInput.value.trim();
+
+      // 如果是今天且未存档，不保存 items、done、total，因为它们是实时的
+      const isTodayAndLive = (date === todayStr() && !timerHistory[date].archived);
+      if (!isTodayAndLive) {
+        timerHistory[date].items = cleaned;
+        timerHistory[date].done = doneInput.value ? parseInt(doneInput.value, 10) : 0;
+        timerHistory[date].total = totalInput.value ? parseInt(totalInput.value, 10) : 0;
+        timerHistory[date].manualEdit = true; // 锁定历史记录，防止被快照覆盖
+      }
       saveTimerHistory();
 
       // 如果编辑的是今天 → 同步到上方计时器
