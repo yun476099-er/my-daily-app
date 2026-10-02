@@ -2188,7 +2188,7 @@
     showToast('已删除 ' + date + ' 的记录');
   }
 
-        function showTimerHistoryEditDialog(date, rec) {
+            function showTimerHistoryEditDialog(date, rec) {
     if (!rec.items) rec.items = [];
     const workingItems = rec.items.map((x) => ({ ...x }));
     const isTodayAndLive = (date === todayStr() && !rec.archived);
@@ -2695,7 +2695,6 @@
     saveTimers();
   }
 
-  let lastTSave = 0;
     let lastTSave = 0;
   setInterval(() => {
     const now = Date.now();
