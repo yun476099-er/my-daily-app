@@ -2190,19 +2190,17 @@
     showToast('已删除 ' + date + ' 的记录');
   }
 
-            function showTimerHistoryEditDialog(date, rec) {
-            let workingItems = [];
+                function showTimerHistoryEditDialog(date, rec) {
+    let workingItems = [];
     const isTodayAndLive = (date === todayStr() && !rec.archived);
     
     if (date === todayStr()) {
       // 针对“今天”，无论是实时状态还是已存档状态，都合并所有计时器项目
       const itemMap = new Map();
-      // 先放入当前的 timers（包含所有项，哪怕是0）
       timers.forEach((t) => {
         const elapsed = t.accumulated + (t.running ? Date.now() - t.startedAt : 0);
         itemMap.set(t.id, { id: t.id, name: t.name, ms: elapsed });
       });
-      // 如果今天已经存档，用存档里的时间覆盖（以防存档后计时器被重置）
       if (rec.items) {
         rec.items.forEach(it => {
           itemMap.set(it.id, { id: it.id, name: it.name, ms: it.ms });
@@ -2210,7 +2208,6 @@
       }
       workingItems = Array.from(itemMap.values());
     } else {
-      // 历史状态：从存档快照中取
       if (!rec.items) rec.items = [];
       workingItems = rec.items.map((x) => ({ ...x }));
     }
@@ -2275,20 +2272,9 @@
     totalInput.value = rec.total !== undefined ? rec.total : '';
     totalInput.style.cssText = 'flex:1; padding:8px 10px; border:1px solid var(--line-2); border-radius:8px; font-size:13px; text-align:center;';
     
-    if (isTodayAndLive) {
-      doneInput.disabled = true;
-      totalInput.disabled = true;
-    }
     doneRow.appendChild(doneInput);
     doneRow.appendChild(totalInput);
     box.appendChild(doneRow);
-
-    if (isTodayAndLive) {
-      const tip = document.createElement('div');
-      tip.textContent = '提示：今日未存档，计时项和完成情况实时更新，仅可修改 Day 和备注';
-      tip.style.cssText = 'font-size:12px; color:var(--primary-d); background:var(--primary-l); padding:8px; border-radius:6px; margin-bottom:12px; text-align:center; line-height:1.4;';
-      box.appendChild(tip);
-    }
 
     const sep = document.createElement('div');
     sep.style.cssText = 'font-size:12px; color:var(--muted); margin-bottom:6px;';
@@ -2311,7 +2297,6 @@
         nameInp.value = it.name || '';
         nameInp.maxLength = 24;
         nameInp.placeholder = '项目名称';
-        if (isTodayAndLive) nameInp.disabled = true;
         nameInp.addEventListener('input', () => { it.name = nameInp.value; });
         row.appendChild(nameInp);
 
@@ -2321,7 +2306,6 @@
         msInp.min = '0';
         msInp.step = '0.1';
         msInp.value = ((it.ms || 0) / 3600000).toFixed(1);
-        if (isTodayAndLive) msInp.disabled = true;
         msInp.addEventListener('input', () => {
           const v = parseFloat(msInp.value);
           it.ms = (isFinite(v) && v >= 0) ? Math.round(v * 3600000) : 0;
@@ -2404,23 +2388,19 @@
     box.addEventListener('click', (e) => e.stopPropagation());
 
     saveBtn.onclick = () => {
-            const cleaned = workingItems
+      const cleaned = workingItems
         .filter((x) => x.name && x.name.trim())
         .map((x) => ({ id: x.id || uid(), name: x.name.trim(), ms: x.ms }));
 
       timerHistory[date] = timerHistory[date] || {};
       timerHistory[date].day = dayInput.value.trim();
       timerHistory[date].note = noteInput.value.trim();
-
-      if (!isTodayAndLive) {
-        timerHistory[date].items = cleaned;
-        timerHistory[date].done = doneInput.value ? parseInt(doneInput.value, 10) : 0;
-        timerHistory[date].total = totalInput.value ? parseInt(totalInput.value, 10) : 0;
-        timerHistory[date].manualEdit = true;
-      }
-      saveTimerHistory();
-
-            if (date === todayStr() && !isTodayAndLive) {
+      timerHistory[date].items = cleaned;
+      timerHistory[date].done = doneInput.value ? parseInt(doneInput.value, 10) : 0;
+      timerHistory[date].total = totalInput.value ? parseInt(totalInput.value, 10) : 0;
+      
+      // 如果是今天，同步更新上方计时器
+      if (date === todayStr()) {
         const editedIds = new Set(cleaned.map((it) => it.id));
         for (let i = timers.length - 1; i >= 0; i--) {
           if (!editedIds.has(timers[i].id)) {
@@ -2433,53 +2413,46 @@
         cleaned.forEach((editedItem) => {
           let match = timers.find((t) => t.id === editedItem.id);
           if (!match) {
-            const t = {
-              id: editedItem.id, name: editedItem.name, mode: 'up', duration: 0,
-              accumulated: editedItem.ms, running: false, startedAt: null, finished: false
-            };
+            const t = { id: editedItem.id, name: editedItem.name, mode: 'up', duration: 0, accumulated: editedItem.ms, running: false, startedAt: null, finished: false };
             timers.push(t);
             createCard(t);
           } else {
             match.name = editedItem.name;
             if (match.running) {
-              match.accumulated += Date.now() - match.startedAt;
-              match.running = false;
-              match.startedAt = null;
+              match.accumulated = editedItem.ms;
+              match.startedAt = Date.now();
+            } else {
+              match.accumulated = editedItem.ms;
             }
-            match.accumulated = editedItem.ms;
             const c = cards.get(match.id);
             if (c) {
               const nameEl = c.root.querySelector('.name');
               if (nameEl) nameEl.textContent = match.name;
-              c.timeEl.textContent = fmtMs(
-                match.mode === 'down'
-                  ? Math.max(0, match.duration - match.accumulated)
-                  : match.accumulated
-              );
+              c.timeEl.textContent = fmtMs(match.mode === 'down' ? Math.max(0, match.duration - match.accumulated) : match.accumulated);
             }
             updateCardUI(match);
           }
         });
-
         updateMeta();
         saveTimers();
       }
 
+      saveTimerHistory();
       renderTimerHistory();
       showToast('已保存');
       close();
     };
   }
-    async function archiveTimerToday() {
+        async function archiveTimerToday() {
     const today = todayStr();
-    const ok = await confirmDialog('存档今日记录？之后计时器和事项打卡将重置，方便开始新的一天。');
+    const ok = await confirmDialog('存档今日记录？存档后事项和 Day 值将重置，但计时器会继续跑，方便您开始跨天睡眠计时。');
     if (!ok) return;
 
-    // 1) 写最终快照，标记 archived
+    // 1) 写最终快照，标记 archived (不再过滤0，保存全部数据)
     const items = [];
     timers.forEach((t) => {
       const elapsed = t.accumulated + (t.running ? Date.now() - t.startedAt : 0);
-      if (elapsed > 0) items.push({ id: t.id, name: t.name, ms: elapsed });
+      items.push({ id: t.id, name: t.name, ms: elapsed });
     });
 
     let dayVal = '';
@@ -2501,19 +2474,9 @@
     };
     saveTimerHistory();
 
-    // 2) 重置上方所有计时器
-    timers.forEach((t) => {
-      t.accumulated = 0;
-      t.running = false;
-      t.startedAt = null;
-      t.finished = false;
-      const c = cards.get(t.id);
-      if (c) c.timeEl.textContent = fmtMs(t.mode === 'down' ? t.duration : 0);
-      updateCardUI(t);
-    });
-    saveTimers();
-
-    // 3) 清空事项打卡和 Day 值
+    // 2) 移除重置上方计时器的代码！计时器继续跑，跨天的睡眠时间会自动计入次日。
+    
+    // 3) 只清空事项打卡和 Day 值
     todoList.length = 0;
     saveTodoData();
     try { localStorage.removeItem(DAY_KEY); } catch (e) {}
@@ -2522,9 +2485,8 @@
     updateWatermark();
 
     renderTimerHistory();
-    showToast('已存档，新的一天开始！');
+    showToast('已存档。事项已重置，计时器继续运转，次日将自动开启新记录。');
   }
-
   const T_INIT_KEY = 'my-timers-initialized-v1';
   function initDefaultTimers() {
     if (localStorage.getItem(T_INIT_KEY) === '1') return;
